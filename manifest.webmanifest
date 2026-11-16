@@ -1,0 +1,11 @@
+{
+  "name": "همراه ماشین",
+  "short_name": "ماشین",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d1214",
+  "theme_color": "#0d1214",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

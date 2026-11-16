@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>همراه ماشین</title>
+<meta name="theme-color" content="#0d1214">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&family=Oxanium:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+/* Layout: one-screen cabin app — status bar on top, one panel per tab, tab bar at the bottom. Dark-first (night driving). */
+:root{
+  --bg:#0d1214; --panel:#151c1f; --line:#243035; --fg:#e4ecee; --dim:#7f8f95;
+  --accent:#f0a33c; --ok:#4cc38a; --warn:#f2c14e; --hot:#ef5b5b; --cold:#5aa9e6;
+  --f-text:"Vazirmatn",Tahoma,system-ui,sans-serif; --f-num:"Oxanium","Vazirmatn",ui-monospace,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#edf1f2; --panel:#ffffff; --line:#d5dee1; --fg:#132024; --dim:#5a6b71;
+  --accent:#c47400; --ok:#1f9a62; --warn:#b98a00; --hot:#d63c3c; --cold:#2a7fc0; color-scheme:light}}
+:root[data-theme="light"]{--bg:#edf1f2; --panel:#ffffff; --line:#d5dee1; --fg:#132024; --dim:#5a6b71;
+  --accent:#c47400; --ok:#1f9a62; --warn:#b98a00; --hot:#d63c3c; --cold:#2a7fc0; color-scheme:light}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--f-text);display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+
+header{display:flex;align-items:center;gap:10px;padding-block:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  border-bottom:1px solid var(--line)}
+header h1{font-size:17px;margin:0;font-weight:700;flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.pill.on{color:var(--ok)} .pill.demo{color:var(--accent)} .pill.busy{color:var(--warn)}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 14px;font-size:14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#1a1205;font-weight:700}
+.btn.danger{color:var(--hot)}
+
+main{flex:1;overflow-y:auto;padding-block:16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+section{display:none;max-width:720px;margin:0 auto;flex-direction:column;gap:14px}
+section.active{display:flex}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.label{font-size:12px;color:var(--dim);letter-spacing:.02em}
+.note{font-size:13px;color:var(--dim)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* dashboard */
+.gauge{display:block;width:100%;max-width:420px;margin:0 auto}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;border-inline-start:4px solid var(--ok)}
+.tile .v{font-size:24px;font-weight:700} .tile .u{font-size:12px;color:var(--dim);margin-inline-start:4px}
+.tile.warn{border-inline-start-color:var(--warn)} .tile.hot{border-inline-start-color:var(--hot)} .tile.cold{border-inline-start-color:var(--cold)}
+.tile.na{border-inline-start-color:var(--line)} .tile.na .v{color:var(--dim)}
+
+/* tilt */
+.tilt{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.tilt{grid-template-columns:1fr}}
+.tilt .card{text-align:center}
+.tilt svg{width:100%;max-width:260px;height:auto;display:block;margin:0 auto}
+.deg{font-size:44px;font-weight:700;line-height:1.1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 14px;font-size:14px;color:var(--dim)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#1a1205;font-weight:700}
+
+/* compass */
+.compass{display:block;width:100%;max-width:340px;margin:0 auto}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+
+/* map */
+#map{height:min(60vh,520px);border-radius:14px;border:1px solid var(--line);z-index:0;overflow:hidden;position:relative}
+.leaflet-container{background:var(--panel);font-family:var(--f-text)}
+.carpin{width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 2px var(--accent)}
+.mepin{width:16px;height:16px;border-radius:50%;background:var(--cold);border:3px solid #fff}
+
+/* dtc */
+.dtc{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.dtc:last-child{border-bottom:0}
+.dtc .code{font-size:18px;font-weight:700;color:var(--warn);min-width:68px}
+.confirm{display:none;gap:8px;align-items:center;flex-wrap:wrap}
+.confirm.show{display:flex}
+
+nav{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--panel);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav button{border:0;background:transparent;padding:8px 0 6px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+nav button[aria-current="page"]{color:var(--accent)}
+
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:10px;font-size:14px;max-width:90vw;display:none;z-index:1000}
+.toast.show{display:block}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>همراه ماشین</h1>
+  <span id="status" class="pill demo">دمو</span>
+  <button id="connectBtn" class="btn primary">اتصال</button>
+</header>
+
+<main>
+  <!-- داشبورد -->
+  <section id="tab-dash" class="active">
+    <div class="card">
+      <svg class="gauge" viewBox="0 0 200 150" direction="ltr" aria-label="سرعت و دور موتور">
+        <path id="rpmTrack" fill="none" stroke="var(--line)" stroke-width="10" stroke-linecap="round"/>
+        <path id="rpmRed" fill="none" stroke="var(--hot)" stroke-opacity=".35" stroke-width="10"/>
+        <path id="rpmArc" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round"/>
+        <g id="rpmTicks" fill="var(--dim)" font-size="8" font-family="Oxanium,monospace" text-anchor="middle"></g>
+        <text id="spd" x="100" y="100" text-anchor="middle" font-size="44" font-weight="700" fill="var(--fg)" font-family="Oxanium,monospace">0</text>
+        <text x="100" y="116" text-anchor="middle" font-size="10" fill="var(--dim)">km/h</text>
+        <text id="rpmTxt" x="100" y="140" text-anchor="middle" font-size="12" fill="var(--accent)" font-family="Oxanium,monospace">0 rpm</text>
+      </svg>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <!-- شیب -->
+  <section id="tab-tilt">
+    <div class="row" style="justify-content:space-between">
+      <div class="seg" role="group" aria-label="منبع شیب">
+        <button data-src="tilt" data-v="car" aria-pressed="true">سنسور ماشین</button>
+        <button data-src="tilt" data-v="phone" aria-pressed="false">سنسور گوشی</button>
+      </div>
+      <button class="btn" id="tiltZero">صفر کردن</button>
+    </div>
+    <div class="tilt">
+      <div class="card">
+        <div class="label">شیب جلو و عقب</div>
+        <svg viewBox="0 0 220 130" aria-hidden="true">
+          <line x1="10" y1="100" x2="210" y2="100" stroke="var(--line)" stroke-dasharray="4 4"/>
+          <g id="carSide" transform="rotate(0 110 80)">
+            <path d="M30 92 L30 74 Q32 66 44 64 L78 60 L98 42 Q102 38 110 38 L150 38 Q158 38 164 46 L178 62 Q192 64 194 74 L194 92 Z" fill="var(--accent)"/>
+            <path d="M104 46 L112 46 L112 60 L88 60 Z M118 46 L148 46 Q154 46 158 52 L164 60 L118 60 Z" fill="var(--bg)" opacity=".8"/>
+            <circle cx="62" cy="94" r="14" fill="var(--fg)"/><circle cx="62" cy="94" r="6" fill="var(--panel)"/>
+            <circle cx="164" cy="94" r="14" fill="var(--fg)"/><circle cx="164" cy="94" r="6" fill="var(--panel)"/>
+          </g>
+        </svg>
+        <div class="deg num" id="pitchTxt">0.0°</div>
+        <div class="note" id="pitchHint">صاف</div>
+        <div class="note">بیشترین: <span class="num" id="pitchMax">0°</span></div>
+      </div>
+      <div class="card">
+        <div class="label">شیب به پهلو</div>
+        <svg viewBox="0 0 220 130" aria-hidden="true">
+          <line x1="10" y1="112" x2="210" y2="112" stroke="var(--line)" stroke-dasharray="4 4"/>
+          <g id="carRear" transform="rotate(0 110 80)">
+            <path d="M58 98 L58 70 Q60 60 72 58 L82 34 Q86 28 94 28 L126 28 Q134 28 138 34 L148 58 Q160 60 162 70 L162 98 Z" fill="var(--accent)"/>
+            <path d="M90 36 L130 36 L138 56 L82 56 Z" fill="var(--bg)" opacity=".8"/>
+            <rect x="66" y="66" width="16" height="8" rx="2" fill="var(--hot)"/><rect x="138" y="66" width="16" height="8" rx="2" fill="var(--hot)"/>
+            <rect x="56" y="96" width="22" height="16" rx="4" fill="var(--fg)"/><rect x="142" y="96" width="22" height="16" rx="4" fill="var(--fg)"/>
+          </g>
+        </svg>
+        <div class="deg num" id="rollTxt">0.0°</div>
+        <div class="note" id="rollHint">صاف</div>
+        <div class="note">بیشترین: <span class="num" id="rollMax">0°</span></div>
+      </div>
+    </div>
+    <p class="note" id="tiltNote">داده از ژیروسکوپ روی ESP32. با «صفر کردن» حالت فعلی ماشین صاف حساب می‌شه.</p>
+  </section>
+
+  <!-- قطب‌نما -->
+  <section id="tab-comp">
+    <div class="row" style="justify-content:space-between">
+      <div class="seg" role="group" aria-label="منبع جهت">
+        <button data-src="comp" data-v="car" aria-pressed="true">ماشین</button>
+        <button data-src="comp" data-v="phone" aria-pressed="false">گوشی</button>
+      </div>
+      <span class="note" id="compSrcNote">جهت حرکت از GPS ماشین</span>
+    </div>
+    <div class="card">
+      <svg class="compass" viewBox="0 0 240 240" aria-label="قطب‌نما">
+        <circle cx="120" cy="120" r="112" fill="none" stroke="var(--line)" stroke-width="2"/>
+        <g id="rose"></g>
+        <path d="M120 6 L112 26 L128 26 Z" fill="var(--accent)"/>
+        <text id="hdgTxt" x="120" y="122" text-anchor="middle" font-size="34" font-weight="700" fill="var(--fg)" font-family="Oxanium,monospace">0°</text>
+        <text id="hdgName" x="120" y="146" text-anchor="middle" font-size="14" fill="var(--dim)" font-family="Vazirmatn,sans-serif">شمال</text>
+      </svg>
+    </div>
+    <div class="facts">
+      <div class="card"><div class="label">سرعت GPS</div><div class="num" style="font-size:20px;font-weight:700" id="gspd">--</div></div>
+      <div class="card"><div class="label">ارتفاع</div><div class="num" style="font-size:20px;font-weight:700" id="alt">--</div></div>
+      <div class="card"><div class="label">ماهواره</div><div class="num" style="font-size:20px;font-weight:700" id="sat">--</div></div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div><div class="label">ماشین کجاست؟</div><div id="findTxt">موقعیت گوشی لازمه</div></div>
+        <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true"><g id="findArrow" transform="rotate(0 30 30)"><path d="M30 6 L44 46 L30 38 L16 46 Z" fill="var(--accent)"/></g></svg>
+      </div>
+      <p class="note" style="margin:6px 0 0">فلش به سمت ماشین اشاره می‌کنه. سنسور گوشی و موقعیت گوشی باید روشن باشن.</p>
+    </div>
+  </section>
+
+  <!-- نقشه -->
+  <section id="tab-map">
+    <div id="map" role="region" aria-label="نقشه"></div>
+    <div class="card">
+      <div class="label">آخرین موقعیت ماشین</div>
+      <div id="carPos">هنوز موقعیتی ثبت نشده</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="navGoogle">مسیریابی با Google Maps</button>
+        <button class="btn" id="navApple">Apple Maps</button>
+        <button class="btn" id="navGeo">برنامه‌ی دیگه (نشان، بلد…)</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="centerCar">نمایش ماشین</button>
+        <button class="btn" id="centerMe">نمایش من</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- کدهای خطا -->
+  <section id="tab-dtc">
+    <div class="row">
+      <button class="btn primary" id="dtcRead">خواندن کدها</button>
+      <button class="btn danger" id="dtcClearAsk">پاک کردن کدها</button>
+    </div>
+    <div class="confirm card" id="dtcConfirm">
+      <span>کدها از ECU پاک بشن؟ چراغ چک هم خاموش می‌شه.</span>
+      <button class="btn danger" id="dtcClearYes">بله، پاک کن</button>
+      <button class="btn" id="dtcClearNo">نه</button>
+    </div>
+    <div class="card" id="dtcList"></div>
+  </section>
+</main>
+
+<nav aria-label="بخش‌ها">
+  <button data-tab="dash" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/></svg>داشبورد</button>
+  <button data-tab="tilt"><svg viewBox="0 0 24 24"><path d="M3 18L21 8"/><path d="M3 18h18"/><path d="M15 18a6 6 0 0 0-1-3"/></svg>شیب</button>
+  <button data-tab="comp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-2 4-4 2 2-4z"/></svg>قطب‌نما</button>
+  <button data-tab="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg>نقشه</button>
+  <button data-tab="dtc"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>خطاها</button>
+</nav>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+"use strict";
+/* ===== protocol (see PROTOCOL.md) ===== */
+const NUS_SVC = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+const NUS_RX  = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";   // phone -> ESP32 (write)
+const NUS_TX  = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";   // ESP32 -> phone (notify)
+
+const $ = id => document.getElementById(id);
+const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
+                set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+
+const S = {
+  mode: "demo",               // demo | ble
+  d: {},                      // latest car data
+  dtc: [],
+  src: { tilt: "car", comp: "car" },
+  phone: { lat:null, lon:null, hdg:null, beta:null, gamma:null },
+  zero: store.get("tiltZero") || { car:{p:0,r:0}, phone:{p:0,r:0} },
+  maxP: 0, maxR: 0,
+  last: store.get("carLast"),
+  trail: [],
+  tab: "dash",
+};
+
+function toast(msg, ms=2600){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove("show"), ms); }
+const fmt = (v,d=0) => (v==null || isNaN(v)) ? "--" : Number(v).toFixed(d);
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+
+/* ===== tabs ===== */
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+function showTab(t){
+  S.tab = t;
+  document.querySelectorAll("nav button").forEach(b => { if (b.dataset.tab===t) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  document.querySelectorAll("main section").forEach(s => s.classList.toggle("active", s.id==="tab-"+t));
+  if (t==="map") initMap();
+  if (t==="map" || t==="comp") startGeo();
+  if (location.hash !== "#"+t) history.replaceState(null, "", "#"+t);
+  render();
+}
+
+/* ===== dashboard ===== */
+const CX=100, CY=88, R=72, A0=150, A1=390, RPM_MAX=7000, RED=6000;
+const pt = a => [CX + R*Math.cos(a*Math.PI/180), CY + R*Math.sin(a*Math.PI/180)];
+function arc(a0,a1){ const [x0,y0]=pt(a0),[x1,y1]=pt(a1); return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; }
+const rpmA = r => A0 + (A1-A0)*Math.min(Math.max(r,0),RPM_MAX)/RPM_MAX;
+$("rpmTrack").setAttribute("d", arc(A0,A1));
+$("rpmRed").setAttribute("d", arc(rpmA(RED),A1));
+(function(){ let h=""; for(let k=0;k<=7;k++){ const a=rpmA(k*1000)*Math.PI/180; h+=`<text x="${(CX+(R-16)*Math.cos(a)).toFixed(1)}" y="${(CY+(R-16)*Math.sin(a)+3).toFixed(1)}">${k}</text>`; } $("rpmTicks").innerHTML=h; })();
+
+const TILES = [
+  { k:"bat",  t:"باتری",        u:"V",   d:1, lvl:v=> v<11.8?"hot": v<12.4?"warn": v>14.8?"hot":"ok" },
+  { k:"clt",  t:"دمای آب",      u:"°C",  d:0, lvl:v=> v<60?"cold": v>108?"hot": v>100?"warn":"ok" },
+  { k:"oil",  t:"دمای روغن",    u:"°C",  d:0, lvl:v=> v<60?"cold": v>130?"hot": v>118?"warn":"ok" },
+  { k:"fuel", t:"سوخت باک",     u:"%",   d:0, lvl:v=> v<10?"hot": v<20?"warn":"ok" },
+  { k:"lph",  t:"مصرف لحظه‌ای", u:"L/h", d:1, lvl:()=>"ok" },
+  { k:"load", t:"بار موتور",    u:"%",   d:0, lvl:v=> v>90?"warn":"ok" },
+  { k:"iat",  t:"دمای هوای ورودی", u:"°C", d:0, lvl:v=> v>60?"warn":"ok" },
+  { k:"tps",  t:"دریچه گاز",    u:"%",   d:0, lvl:()=>"ok" },
+  { k:"map",  t:"فشار منیفولد", u:"kPa", d:0, lvl:()=>"ok" },
+  { k:"amb",  t:"دمای بیرون",   u:"°C",  d:0, lvl:v=> v<3?"cold":"ok" },
+];
+$("tiles").innerHTML = TILES.map(x=>`<div class="tile na" id="t-${x.k}"><div class="label">${x.t}</div><div dir="ltr" style="text-align:right"><span class="v num">--</span><span class="u">${x.u}</span></div></div>`).join("");
+
+function renderDash(){
+  const d=S.d, r=d.rpm||0;
+  $("rpmArc").setAttribute("d", r>20 ? arc(A0, rpmA(r)) : "");
+  $("rpmArc").setAttribute("stroke", r>=RED ? "var(--hot)" : "var(--accent)");
+  $("spd").textContent = fmt(d.spd);
+  $("rpmTxt").textContent = fmt(r) + " rpm";
+  for (const x of TILES){
+    const el=$("t-"+x.k), v=d[x.k];
+    el.querySelector(".v").textContent = fmt(v, x.d);
+    el.className = "tile " + (v==null ? "na" : x.lvl(v));
+  }
+}
+
+/* ===== tilt ===== */
+function tiltNow(){
+  if (S.src.tilt==="phone"){
+    if (S.phone.beta==null) return null;
+    const z=S.zero.phone; return { p: S.phone.beta - z.p, r: S.phone.gamma - z.r };
+  }
+  if (S.d.pitch==null) return null;
+  const z=S.zero.car; return { p: S.d.pitch - z.p, r: S.d.roll - z.r };
+}
+function renderTilt(){
+  const t=tiltNow();
+  if (!t){ $("pitchTxt").textContent="--"; $("rollTxt").textContent="--"; return; }
+  S.maxP=Math.max(S.maxP,Math.abs(t.p)); S.maxR=Math.max(S.maxR,Math.abs(t.r));
+  const p=Math.max(-45,Math.min(45,t.p)), r=Math.max(-45,Math.min(45,t.r));
+  $("carSide").setAttribute("transform", `rotate(${(-p).toFixed(1)} 110 80)`);
+  $("carRear").setAttribute("transform", `rotate(${r.toFixed(1)} 110 80)`);
+  $("pitchTxt").textContent = Math.abs(t.p).toFixed(1)+"°";
+  $("rollTxt").textContent  = Math.abs(t.r).toFixed(1)+"°";
+  $("pitchHint").textContent = Math.abs(t.p)<1 ? "صاف" : t.p>0 ? "سربالایی" : "سرپایینی";
+  $("rollHint").textContent  = Math.abs(t.r)<1 ? "صاف" : t.r>0 ? "کج به راست" : "کج به چپ";
+  $("rollTxt").style.color = Math.abs(t.r)>25 ? "var(--hot)" : Math.abs(t.r)>15 ? "var(--warn)" : "";
+  $("pitchTxt").style.color = Math.abs(t.p)>30 ? "var(--hot)" : Math.abs(t.p)>20 ? "var(--warn)" : "";
+  $("pitchMax").textContent = S.maxP.toFixed(0)+"°";
+  $("rollMax").textContent  = S.maxR.toFixed(0)+"°";
+}
+$("tiltZero").addEventListener("click", ()=>{
+  const k=S.src.tilt, raw = k==="phone" ? {p:S.phone.beta, r:S.phone.gamma} : {p:S.d.pitch, r:S.d.roll};
+  if (raw.p==null){ toast("داده‌ای برای صفر کردن نیست"); return; }
+  S.zero[k]={p:raw.p, r:raw.r}; S.maxP=S.maxR=0; store.set("tiltZero", S.zero); toast("حالت فعلی صاف حساب شد");
+});
+
+/* ===== compass ===== */
+const DIRS=["شمال","شمال‌شرق","شرق","جنوب‌شرق","جنوب","جنوب‌غرب","غرب","شمال‌غرب"];
+(function(){
+  let h="";
+  for(let a=0;a<360;a+=10){ const big=a%30===0, r1=104, r2=big?92:98, s=Math.sin(a*Math.PI/180), c=-Math.cos(a*Math.PI/180);
+    h+=`<line x1="${(120+r1*s).toFixed(1)}" y1="${(120+r1*c).toFixed(1)}" x2="${(120+r2*s).toFixed(1)}" y2="${(120+r2*c).toFixed(1)}" stroke="var(--dim)" stroke-width="${big?2:1}"/>`; }
+  [["N",0,"var(--hot)"],["E",90,"var(--fg)"],["S",180,"var(--fg)"],["W",270,"var(--fg)"]].forEach(([l,a,col])=>{
+    const s=Math.sin(a*Math.PI/180), c=-Math.cos(a*Math.PI/180);
+    h+=`<text x="${(120+78*s).toFixed(1)}" y="${(120+78*c+6).toFixed(1)}" text-anchor="middle" font-size="17" font-weight="700" fill="${col}" font-family="Oxanium,monospace">${l}</text>`; });
+  $("rose").innerHTML=h;
+})();
+function headingNow(){ return S.src.comp==="phone" ? S.phone.hdg : S.d.hdg; }
+function bearing(a,b){ const f1=a[0]*Math.PI/180,f2=b[0]*Math.PI/180,dl=(b[1]-a[1])*Math.PI/180;
+  return (Math.atan2(Math.sin(dl)*Math.cos(f2), Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl))*180/Math.PI+360)%360; }
+function dist(a,b){ const R=6371000, f1=a[0]*Math.PI/180,f2=b[0]*Math.PI/180,df=f2-f1,dl=(b[1]-a[1])*Math.PI/180;
+  const x=Math.sin(df/2)**2+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2; return 2*R*Math.asin(Math.sqrt(x)); }
+const fmtDist = m => m<1000 ? Math.round(m)+" متر" : (m/1000).toFixed(1)+" کیلومتر";
+function renderComp(){
+  const h=headingNow();
+  $("rose").setAttribute("transform", `rotate(${h==null?0:(-h).toFixed(1)} 120 120)`);
+  $("hdgTxt").textContent = h==null ? "--" : Math.round(h)+"°";
+  $("hdgName").textContent = h==null ? "بدون داده" : DIRS[Math.round(h/45)%8];
+  $("gspd").textContent = S.d.gspd==null ? "--" : fmt(S.d.gspd)+" km/h";
+  $("alt").textContent  = S.d.alt==null ? "--" : fmt(S.d.alt)+" m";
+  $("sat").textContent  = fmt(S.d.sat);
+  const car=S.last, me=S.phone;
+  if (car && me.lat!=null){
+    const b=bearing([me.lat,me.lon],[car.lat,car.lon]), m=dist([me.lat,me.lon],[car.lat,car.lon]);
+    $("findTxt").textContent = fmtDist(m) + " به سمت " + DIRS[Math.round(b/45)%8];
+    $("findArrow").setAttribute("transform", `rotate(${((b-(me.hdg??0))+360)%360} 30 30)`);
+  } else $("findTxt").textContent = car ? "موقعیت گوشی لازمه" : "هنوز موقعیت ماشین ثبت نشده";
+}
+document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click", async ()=>{
+  const k=b.dataset.src, v=b.dataset.v;
+  if (v==="phone" && !(await startOrientation())) return;
+  S.src[k]=v;
+  document.querySelectorAll(`.seg button[data-src="${k}"]`).forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
+  if (k==="tilt"){ S.maxP=S.maxR=0; $("tiltNote").textContent = v==="car" ? "داده از ژیروسکوپ روی ESP32. با «صفر کردن» حالت فعلی ماشین صاف حساب می‌شه." : "گوشی رو روی پایه ثابت کن و یه بار «صفر کردن» رو بزن."; }
+  else $("compSrcNote").textContent = v==="car" ? "جهت حرکت از GPS ماشین" : "قطب‌نمای گوشی";
+  render();
+}));
+
+/* ===== phone sensors ===== */
+let orientOn=false;
+async function startOrientation(){
+  if (orientOn) return true;
+  if (!("DeviceOrientationEvent" in window)){ toast("این گوشی سنسور جهت نداره"); return false; }
+  if (!window.isSecureContext){ toast("سنسور گوشی فقط روی آدرس https کار می‌کنه"); return false; }
+  try{
+    if (typeof DeviceOrientationEvent.requestPermission==="function"){
+      const r=await DeviceOrientationEvent.requestPermission(); if (r!=="granted"){ toast("اجازه‌ی سنسور داده نشد"); return false; }
+    }
+  }catch(e){ toast("اجازه‌ی سنسور داده نشد"); return false; }
+  const onOri = e=>{
+    S.phone.beta=e.beta; S.phone.gamma=e.gamma;
+    if (e.webkitCompassHeading!=null) S.phone.hdg=e.webkitCompassHeading;
+    else if (e.absolute && e.alpha!=null) S.phone.hdg=(360-e.alpha)%360;
+  };
+  window.addEventListener("deviceorientationabsolute", onOri);
+  window.addEventListener("deviceorientation", onOri);
+  orientOn=true; return true;
+}
+let geoOn=false;
+function startGeo(){
+  if (geoOn || !("geolocation" in navigator)) return;
+  if (!window.isSecureContext) return;
+  geoOn=true;
+  navigator.geolocation.watchPosition(p=>{
+    S.phone.lat=p.coords.latitude; S.phone.lon=p.coords.longitude; updateMap(); render();
+  }, ()=>{ geoOn=false; }, { enableHighAccuracy:true, maximumAge:5000 });
+}
+
+/* ===== map ===== */
+let map=null, carMk=null, meMk=null, trailLn=null, follow=true;
+function initMap(){
+  if (map){ setTimeout(()=>map.invalidateSize(),50); return; }
+  if (!window.L){ $("map").textContent="نقشه بارگذاری نشد (اینترنت؟)"; return; }
+  const c = S.last ? [S.last.lat,S.last.lon] : [35.7, 51.39];
+  map = L.map("map",{zoomControl:true, attributionControl:true}).setView(c, 15);
+  let tileErr=0;
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap"})
+    .on("tileerror", ()=>{ if (++tileErr===3) toast("نقشه‌ی زمینه باز نشد (اینترنت یا فیلتر). مسیریابی با دکمه‌های پایین کار می‌کنه.", 5000); })
+    .addTo(map);
+  trailLn = L.polyline([], {color:getComputedStyle(document.documentElement).getPropertyValue("--accent").trim()||"#f0a33c", weight:4, opacity:.7}).addTo(map);
+  map.on("dragstart", ()=>{ follow=false; });
+  updateMap();
+}
+function updateMap(){
+  if (!map) return;
+  if (S.last){
+    const ll=[S.last.lat,S.last.lon];
+    if (!carMk) carMk=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="carpin"></div>',iconSize:[22,22]})}).addTo(map).bindTooltip("ماشین");
+    else carMk.setLatLng(ll);
+    if (follow) map.panTo(ll, {animate:false});
+  }
+  if (S.phone.lat!=null){
+    const ll=[S.phone.lat,S.phone.lon];
+    if (!meMk) meMk=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="mepin"></div>',iconSize:[16,16]})}).addTo(map).bindTooltip("من");
+    else meMk.setLatLng(ll);
+  }
+  trailLn.setLatLngs(S.trail);
+}
+function renderCarPos(){
+  const c=S.last;
+  if (!c){ $("carPos").textContent="هنوز موقعیتی ثبت نشده"; return; }
+  const ago=Math.round((Date.now()-c.t)/60000);
+  $("carPos").innerHTML = `<span class="num">${c.lat.toFixed(5)}, ${c.lon.toFixed(5)}</span> · ${ago<1?"همین الان":ago+" دقیقه پیش"}`;
+}
+function openNav(kind){
+  const c=S.last; if (!c){ toast("هنوز موقعیت ماشین ثبت نشده"); return; }
+  const ll=`${c.lat},${c.lon}`;
+  const url = kind==="google" ? `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=walking`
+            : kind==="apple"  ? `https://maps.apple.com/?daddr=${ll}&dirflg=w`
+            : isIOS ? `https://maps.apple.com/?q=${ll}` : `geo:${ll}?q=${ll}(ماشین)`;
+  location.href=url;
+}
+$("navGoogle").onclick=()=>openNav("google");
+$("navApple").onclick=()=>openNav("apple");
+$("navGeo").onclick=()=>openNav("geo");
+$("centerCar").onclick=()=>{ follow=true; if(map&&S.last) map.setView([S.last.lat,S.last.lon],17); else toast("موقعیت ماشین نداریم"); };
+$("centerMe").onclick=()=>{ follow=false; startGeo(); if(map&&S.phone.lat!=null) map.setView([S.phone.lat,S.phone.lon],17); else toast(window.isSecureContext?"در حال گرفتن موقعیت گوشی…":"موقعیت گوشی فقط روی https"); };
+
+let lastSave=0;
+function onCarFix(){
+  const d=S.d; if (d.lat==null || !d.fix) return;
+  S.last={lat:d.lat, lon:d.lon, t:Date.now()};
+  const p=S.trail[S.trail.length-1];
+  if (!p || dist(p,[d.lat,d.lon])>5){ S.trail.push([d.lat,d.lon]); if (S.trail.length>2000) S.trail.shift(); }
+  if (Date.now()-lastSave>5000){ store.set("carLast", S.last); lastSave=Date.now(); }
+  updateMap();
+}
+
+/* ===== DTC ===== */
+const DTC_FA = {
+  P0101:"سنسور جریان هوا (MAF): خارج از محدوده", P0113:"سنسور دمای هوای ورودی: ولتاژ بالا", P0117:"سنسور دمای آب: ولتاژ پایین",
+  P0130:"سنسور اکسیژن جلو: مدار", P0171:"مخلوط سوخت خیلی رقیق (بانک ۱)", P0172:"مخلوط سوخت خیلی غنی (بانک ۱)",
+  P0300:"احتراق ناقص در چند سیلندر", P0301:"احتراق ناقص سیلندر ۱", P0302:"احتراق ناقص سیلندر ۲", P0303:"احتراق ناقص سیلندر ۳", P0304:"احتراق ناقص سیلندر ۴",
+  P0325:"سنسور ناک: مدار", P0335:"سنسور میل‌لنگ: مدار", P0340:"سنسور میل‌سوپاپ: مدار", P0420:"راندمان کاتالیست پایین (بانک ۱)",
+  P0443:"شیر کنیستر: مدار", P0500:"سنسور سرعت خودرو", P0505:"سیستم کنترل دور آرام", P0562:"ولتاژ سیستم پایین", P0650:"مدار چراغ چک",
+};
+function renderDtc(){
+  const el=$("dtcList");
+  if (!S.dtc.length){ el.innerHTML='<div class="note">کد خطایی ثبت نشده.</div>'; return; }
+  el.innerHTML = S.dtc.map(c=>`<div class="dtc"><span class="code num">${c}</span><span>${DTC_FA[c]||"کد ثبت‌شده در ECU (توضیحش رو در جدول کدها پیدا کن)"}</span></div>`).join("");
+}
+$("dtcRead").onclick=()=>{ if (S.mode==="ble") bleSend("DTC?"); else { S.dtc=["P0171","P0420"]; renderDtc(); toast("دمو: ۲ کد خطا"); } };
+$("dtcClearAsk").onclick=()=>$("dtcConfirm").classList.add("show");
+$("dtcClearNo").onclick=()=>$("dtcConfirm").classList.remove("show");
+$("dtcClearYes").onclick=()=>{ $("dtcConfirm").classList.remove("show"); if (S.mode==="ble") bleSend("DTC!CLR"); else { S.dtc=[]; renderDtc(); toast("دمو: کدها پاک شد"); } };
+
+/* ===== demo simulator ===== */
+const demo = { t:0, lat:35.7003, lon:51.3380, hdg:72, spd:0, clt:42, fuel:63, turn:0 };
+function demoTick(dt){
+  const m=demo; m.t+=dt;
+  const target = Math.max(0, 55 + 35*Math.sin(m.t/14) + 12*Math.sin(m.t/3.7));
+  m.spd += (target-m.spd)*Math.min(1,dt*0.6);
+  m.turn = 14*Math.sin(m.t/11) + 6*Math.sin(m.t/4.3);
+  m.hdg = (m.hdg + m.turn*dt*(m.spd>3?1:0) + 360)%360;
+  const v=m.spd/3.6, h=m.hdg*Math.PI/180;
+  m.lat += v*Math.cos(h)*dt/111320; m.lon += v*Math.sin(h)*dt/(111320*Math.cos(m.lat*Math.PI/180));
+  m.clt = Math.min(91, m.clt + dt*0.8); m.fuel = Math.max(5, m.fuel - dt*0.002);
+  const gear = m.spd<3?0: Math.min(5, Math.ceil(m.spd/24)), k=[0,118,70,48,37,30][gear];
+  const rpm = Math.max(820, m.spd*k) + 30*Math.sin(m.t*7);
+  const load = Math.min(95, 18 + Math.max(0,(target-m.spd))*2.5 + m.spd*0.25);
+  S.d = { rpm, spd:m.spd, bat:14.1+0.05*Math.sin(m.t), clt:m.clt, oil:Math.min(104,m.clt+6), fuel:m.fuel,
+    lph: 0.8 + load*0.09, load, amb: 17, iat:31+3*Math.sin(m.t/20), tps: Math.min(100, load*0.7), map: 30+load*0.65,
+    pitch: 4*Math.sin(m.t/9) + 0.3*Math.sin(m.t*3), roll: m.turn*m.spd/600 + 1.5*Math.sin(m.t/6),
+    hdg: m.hdg, lat:m.lat, lon:m.lon, alt:1190+8*Math.sin(m.t/30), gspd:m.spd, sat:9, fix:1 };
+  onCarFix();
+}
+
+/* ===== Bluetooth (Web Bluetooth, Nordic UART) ===== */
+let bleDev=null, bleRx=null, bleBuf="";
+const dec=new TextDecoder(), enc=new TextEncoder();
+async function bleConnect(){
+  if (!navigator.bluetooth){
+    toast(isIOS ? "سافاری بلوتوث وب نداره. برنامه‌ی Bluefy رو از App Store نصب کن و این صفحه رو توش باز کن." : "این مرورگر بلوتوث وب نداره؛ با Chrome باز کن.", 6000);
+    return;
+  }
+  if (!window.isSecureContext){ toast("بلوتوث فقط روی آدرس https کار می‌کنه", 5000); return; }
+  try{
+    setStatus("busy","در حال اتصال");
+    bleDev = await navigator.bluetooth.requestDevice({ filters:[{namePrefix:"CarDisplay"},{services:[NUS_SVC]}], optionalServices:[NUS_SVC] });
+    bleDev.addEventListener("gattserverdisconnected", onBleLost);
+    const srv = await bleDev.gatt.connect();
+    const svc = await srv.getPrimaryService(NUS_SVC);
+    bleRx = await svc.getCharacteristic(NUS_RX);
+    const tx = await svc.getCharacteristic(NUS_TX);
+    tx.addEventListener("characteristicvaluechanged", e=>onBleData(e.target.value));
+    await tx.startNotifications();
+    S.mode="ble"; S.d={}; S.trail=[]; setStatus("on","وصل"); $("connectBtn").textContent="قطع";
+    toast("به ماشین وصل شد");
+  }catch(e){
+    setStatus(S.mode==="demo"?"demo":"off", S.mode==="demo"?"دمو":"قطع");
+    if (e.name!=="NotFoundError") toast("اتصال نشد: "+e.message, 4000);
+  }
+}
+function onBleData(dv){
+  bleBuf += dec.decode(dv, {stream:true});
+  let i; while((i=bleBuf.indexOf("\n"))>=0){
+    const line=bleBuf.slice(0,i).trim(); bleBuf=bleBuf.slice(i+1);
+    if (!line) continue;
+    try{ const m=JSON.parse(line); if (m.dtc){ S.dtc=m.dtc; renderDtc(); delete m.dtc; } Object.assign(S.d, m); onCarFix(); }catch(e){}
+  }
+  if (bleBuf.length>4096) bleBuf="";
+}
+function onBleLost(){
+  bleRx=null;
+  if (S.last){ S.last.t=Date.now(); store.set("carLast", S.last); }
+  S.mode="off"; setStatus("off","قطع"); $("connectBtn").textContent="اتصال";
+  toast("اتصال قطع شد؛ آخرین موقعیت ماشین ذخیره شد", 4000);
+}
+async function bleSend(s){ if (!bleRx){ toast("وصل نیستیم"); return; } try{ await bleRx.writeValue(enc.encode(s+"\n")); }catch(e){ toast("ارسال نشد"); } }
+function setStatus(cls,txt){ const s=$("status"); s.className="pill "+cls; s.textContent=txt; }
+
+$("connectBtn").addEventListener("click", ()=>{
+  if (S.mode==="ble"){ bleDev?.gatt?.disconnect(); return; }
+  bleConnect();
+});
+$("status").addEventListener("click", ()=>{
+  if (S.mode==="off"){ S.mode="demo"; setStatus("demo","دمو"); toast("حالت دمو روشن شد"); }
+  else if (S.mode==="demo"){ S.mode="off"; S.d={}; setStatus("off","قطع"); toast("حالت دمو خاموش شد"); render(); }
+});
+
+/* ===== loop ===== */
+function render(){
+  if (S.tab==="dash") renderDash();
+  else if (S.tab==="tilt") renderTilt();
+  else if (S.tab==="comp") renderComp();
+  else if (S.tab==="map") renderCarPos();
+}
+let prev=performance.now();
+setInterval(()=>{
+  const now=performance.now(), dt=Math.min(0.5,(now-prev)/1000); prev=now;
+  if (S.mode==="demo") demoTick(dt);
+  render();
+}, 100);
+setInterval(()=>{ if (S.tab==="map") updateMap(); }, 1000);
+
+renderDtc();
+const TABS=["dash","tilt","comp","map","dtc"];
+const tabFromHash = () => TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "dash";
+window.addEventListener("hashchange", ()=>{ if (tabFromHash()!==S.tab) showTab(tabFromHash()); });
+showTab(tabFromHash());
+</script>
+</body>
+</html>
