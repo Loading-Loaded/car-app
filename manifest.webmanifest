@@ -1,11 +1,11 @@
 {
-  "name": "همراه ماشین",
-  "short_name": "ماشین",
+  "name": "iBox · آی‌باکس",
+  "short_name": "iBox",
   "lang": "fa",
   "dir": "rtl",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0d1214",
-  "theme_color": "#0d1214",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+  "background_color": "#0a0f17",
+  "theme_color": "#0a0f17",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
 }
