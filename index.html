@@ -421,7 +421,7 @@ nav button[aria-current="page"]{color:var(--accent)}
       <div class="set"><div class="t">کد اتصال<small>با اولین اتصال بلوتوث خودکار گرفته می‌شه؛ توی منوی دستگاه هم هست (Settings ← Phone App)</small></div>
         <div class="row"><b class="num" id="lkCode">—</b><button class="btn" id="lkCopy">کپی</button></div></div>
       <div class="set"><div class="t">وارد کردن کد</div>
-        <div class="row"><input id="lkInput" class="btn num" style="width:190px" placeholder="EyeBox-A1B2-C3D4E5" autocomplete="off" aria-label="کد اتصال">
+        <div class="row"><input id="lkInput" class="btn num" style="width:190px" placeholder="EBX1-…" autocomplete="off" aria-label="کد اتصال">
           <button class="btn primary" id="lkSave">ذخیره</button><button class="btn danger" id="lkForget">حذف</button></div></div>
     </div>
 
@@ -963,7 +963,7 @@ function demoTick(dt){
 
 /* ===== link layer: Bluetooth (nearby) + internet (MQTT, from anywhere) — EyeBox firmware v31.35+ ===== */
 const BROKER_WSS = "wss://broker.emqx.io:8084/mqtt";
-const LK = { ble:false, net:false, mq:null, netSrv:false, teleMs:0, devOnline:null, pair: store.get("pair2") };
+const LK = { ble:false, net:false, mq:null, netSrv:false, teleMs:0, devOnline:null, pair: store.get("pair3") };
 const isLive = () => S.mode==="live";
 function goLive(){ if (S.mode!=="live"){ S.mode="live"; S.d={}; S.trail=[]; S.dtc=[]; renderDtc(); } updateStatus(); }
 function linkLost(){
@@ -1015,7 +1015,7 @@ function mapData(x){
 }
 function handleMsg(m){
   if (typeof m!=="object" || !m) return;
-  if (m.pair){ LK.pair = { code:m.pair.code }; store.set("pair2", LK.pair); toast("کد اتصال اینترنتی ذخیره شد"); netConnect(); renderLinkCard(); return; }
+  if (m.pair){ if (!m.pair.tid || !m.pair.k) return; LK.pair = { tid:m.pair.tid, k:m.pair.k }; store.set("pair3", LK.pair); toast("کد اتصال اینترنتی ذخیره شد"); netConnect(); renderLinkCard(); return; }
   if (m.cfg){ Object.assign(S.cfg, m.cfg); store.set("cfg",S.cfg); if (S.view==="settings") renderSettings(); return; }
   if (m.data){ mapData(m.data); return; }
   if (m.dtc){ S.dtc=m.dtc; renderDtc(); toast(m.dtc.length ? `${fa(m.dtc.length)} کد خطا` : "کد خطایی نیست"); return; }
@@ -1047,7 +1047,7 @@ async function send(c){
   if (LK.ble && bleRx){
     try{ await bleQueue(c); return true; }catch(e){ toast("ارسال با بلوتوث نشد"); return false; }
   }
-  if (LK.mq && LK.netSrv && LK.pair){ LK.mq.publish(`eyebox/${LK.pair.code}/cmd`, c); return true; }
+  if (LK.mq && LK.netSrv && LK.pair){ netSend(c); return true; }
   toast("به دستگاه وصل نیستیم"); return false;
 }
 // نوشتن‌های بلوتوث پشت سر هم (هم‌زمان دو تا نوشتن خطا می‌ده)
@@ -1098,19 +1098,43 @@ async function onBleLost(){
 }
 function bleDisconnect(){ bleWant=false; bleDev?.gatt?.disconnect(); }
 
-/* --- Internet (MQTT over secure WebSocket) --- */
+/* --- Internet (MQTT over secure WebSocket), end-to-end encrypted (AES-256-GCM) --- */
+// کلید فقط از راه بلوتوث از خود دستگاه گرفته می‌شه؛ سرور و بقیه فقط بایت‌های رمزشده می‌بینن
+const hexBytes = h => new Uint8Array(h.match(/../g).map(x=>parseInt(x,16)));
+let secKey=null, secKeyHex=null;
+async function secKeyGet(){
+  if (secKey && secKeyHex===LK.pair.k) return secKey;
+  secKey = await crypto.subtle.importKey("raw", hexBytes(LK.pair.k), {name:"AES-GCM"}, false, ["encrypt","decrypt"]);
+  secKeyHex = LK.pair.k; return secKey;
+}
+async function secSeal(text){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM", iv, tagLength:128}, await secKeyGet(), new TextEncoder().encode(text)));
+  const out = new Uint8Array(12+ct.length); out.set(iv); out.set(ct,12); return out;
+}
+async function secOpen(bytes){
+  const b = new Uint8Array(bytes);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:b.slice(0,12), tagLength:128}, await secKeyGet(), b.slice(12));
+  return new TextDecoder().decode(pt);
+}
+async function netSend(c){
+  const base=`eyebox/${LK.pair.tid}/`;
+  LK.mq.publish(base+"cmd", await secSeal(Date.now()+"|"+c));   // زمان: پیام ضبط‌شده رو نمی‌شه دوباره فرستاد
+}
+const pairCode = p => `EBX1-${p.tid}-${p.k}`;
 function netConnect(){
-  if (!LK.pair || !LK.pair.code || !window.mqtt) return;
+  if (!LK.pair || !LK.pair.tid || !LK.pair.k || !window.mqtt || !crypto.subtle) return;
   if (LK.mq){ try{ LK.mq.end(true); }catch(e){} }
-  const base=`eyebox/${LK.pair.code}/`;
+  const base=`eyebox/${LK.pair.tid}/`;
   const c = mqtt.connect(BROKER_WSS, { clientId:"eyebox-app-"+Math.random().toString(16).slice(2,10), clean:true, reconnectPeriod:5000, connectTimeout:10000 });
   LK.mq=c;
-  c.on("connect", ()=>{ LK.netSrv=true; c.subscribe([base+"live", base+"x", base+"status", base+"alert", base+"reply"]); updateStatus(); });
+  c.on("connect", ()=>{ LK.netSrv=true; c.subscribe([base+"live", base+"x", base+"status", base+"alert"]); updateStatus(); });
   c.on("close", ()=>{ LK.netSrv=false; if (LK.net){ LK.net=false; linkLost(); } else updateStatus(); });
-  c.on("message", (topic, payload)=>{
-    const sub=topic.slice(base.length), txt=new TextDecoder().decode(payload);
-    if (sub==="status"){ LK.devOnline = txt==="online"; updateStatus(); return; }
-    if (sub==="reply") return;                         // همون از x هم می‌رسه
+  c.on("message", async (topic, payload)=>{
+    const sub=topic.slice(base.length);
+    if (sub==="status"){ LK.devOnline = new TextDecoder().decode(payload)==="online"; updateStatus(); return; }
+    let txt; try{ txt = await secOpen(payload); }catch(e){ return; }   // رمزش با کلید ما باز نشد: نادیده
+    if (topic.slice(0,base.length)!==`eyebox/${LK.pair?.tid}/`) return;
     if (sub==="alert"){ try{ const a=JSON.parse(txt); const msg=a.fa||a.en; addLog(a.lvl>=2?"hot":a.lvl===1?"warn":"info", msg); toast(msg, 4000);
       if (a.lvl>=2 && navigator.vibrate) navigator.vibrate([200,100,200]); }catch(e){} return; }
     if (sub==="live"){
@@ -1128,7 +1152,7 @@ function renderLinkCard(){
   if (!$("lkCode")) return;
   const p=LK.pair;
   $("lkBle").textContent = LK.ble ? "وصل به "+(bleDev?.name||"آی‌باکس") : "وصل نیست";
-  $("lkCode").textContent = p ? p.code : "هنوز نداریم (یه بار با بلوتوث وصل شو)";
+  $("lkCode").textContent = p ? `EBX1-${p.tid}-…` : "هنوز نداریم (یه بار با بلوتوث وصل شو)";
   $("lkNet").textContent = !p ? "کد اتصال لازمه" : !LK.netSrv ? "در حال وصل شدن به سرور…" : LK.net ? "دستگاه آنلاینه، داده زنده می‌رسه" :
     LK.devOnline===false ? "دستگاه آفلاینه" + (S.park?.ts ? " · آخرین بار "+ago(S.park.ts*1000) : "") : "منتظر دستگاه…";
   const x=S.devInfo, d=S.d;
@@ -1141,12 +1165,12 @@ function renderLinkCard(){
 document.addEventListener("click", e=>{ const b=e.target.closest("[data-forget]"); if (b) cmd("wifi forget "+decodeURIComponent(b.dataset.forget), "شبکه حذف شد"); });
 $("lkBleBtn").onclick=()=>LK.ble ? bleDisconnect() : bleConnect();
 $("lkSave").onclick=()=>{
-  const v=$("lkInput").value.trim().replace(/\s/g,""), m=v.match(/^eyebox-([0-9a-f]{4})-([0-9a-f]{6})$/i);
-  if (!m){ toast("کد باید شبیه EyeBox-A1B2-C3D4E5 باشه"); return; }
-  LK.pair={code:`EyeBox-${m[1].toUpperCase()}-${m[2].toUpperCase()}`}; store.set("pair2",LK.pair); netConnect(); renderLinkCard(); toast("کد ذخیره شد");
+  const v=$("lkInput").value.trim().replace(/\s/g,"").toLowerCase(), m=v.match(/^ebx1-([0-9a-f]{16})-([0-9a-f]{64})$/);
+  if (!m){ toast("کد باید با EBX1- شروع بشه (از گوشی‌ای که با بلوتوث وصل شده کپی کن)", 4500); return; }
+  LK.pair={tid:m[1], k:m[2]}; store.set("pair3",LK.pair); $("lkInput").value=""; netConnect(); renderLinkCard(); toast("کد ذخیره شد");
 };
-$("lkForget").onclick=()=>{ LK.pair=null; store.set("pair2",null); if (LK.mq) LK.mq.end(true); LK.mq=null; LK.netSrv=LK.net=false; linkLost(); };
-$("lkCopy").onclick=async()=>{ if (!LK.pair) return; try{ await navigator.clipboard.writeText(LK.pair.code); toast("کپی شد"); }catch(e){ toast("کپی نشد؛ دستی بنویسش"); } };
+$("lkForget").onclick=()=>{ LK.pair=null; store.set("pair3",null); if (LK.mq) LK.mq.end(true); LK.mq=null; LK.netSrv=LK.net=false; linkLost(); };
+$("lkCopy").onclick=async()=>{ if (!LK.pair) return; try{ await navigator.clipboard.writeText(pairCode(LK.pair)); toast("کد کامل کپی شد؛ مثل رمز ازش نگه‌داری کن"); }catch(e){ toast("کپی نشد"); } };
 $("wifiSend").onclick=()=>{
   const ss=$("wifiSsid").value.trim(), pw=$("wifiPass").value;
   if (!ss){ toast("اسم شبکه رو بنویس"); return; }
