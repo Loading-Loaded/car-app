@@ -1,5 +1,5 @@
 // iBox app shell: network first (always the newest version when online), cache when offline.
-const CACHE = "ibox-v4";
+const CACHE = "ibox-v5";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./logo.svg", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-180.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

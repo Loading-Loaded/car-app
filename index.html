@@ -190,6 +190,11 @@ tr.live td:first-child::after{content:" ●";color:var(--ok);font-size:10px}
 .fuelbar b{font:700 20px var(--f-num);width:22px;text-align:center}
 .fsTxt{font-size:26px;font-weight:700;text-align:center}
 
+/* 5-digit code */
+.pcin{display:block;width:100%;max-width:280px;margin:14px auto;text-align:center;font:700 40px/1.2 var(--f-num);letter-spacing:.35em;
+  padding:10px 0 10px .35em;border:2px solid var(--accent);border-radius:14px;background:var(--bg)}
+.sas{font:700 56px/1.1 var(--f-num);text-align:center;letter-spacing:.2em;color:var(--ok);margin:8px 0 14px}
+.steps{margin:0;padding-inline-start:20px;font-size:14px;color:var(--dim)}
 /* settings */
 .set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .set:last-child{border-bottom:0}
@@ -525,6 +530,25 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     <div class="card"><h3>رویدادها</h3><ul class="log" id="log"></ul></div>
   </section>
 
+  <!-- ===== وصل شدن با کد ۵ رقمی (آیفون) ===== -->
+  <section id="v-paircode">
+    <div class="card">
+      <ol class="steps">
+        <li>روی آی‌باکس برو «تنظیمات ← PHONE APP» و دکمه رو یه بار فشار بده.</li>
+        <li>کد ۵ رقمی که روی صفحه‌ش اومده رو اینجا بزن (۲ دقیقه وقت داری).</li>
+      </ol>
+      <input id="pcIn" class="pcin" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="one-time-code" placeholder="•••••" aria-label="کد ۵ رقمی">
+      <div class="row" style="justify-content:center"><button class="btn primary" id="pcGo">وصل شو</button></div>
+      <p class="note" id="pcState" style="text-align:center;margin-top:10px" role="status"></p>
+    </div>
+    <div class="card" id="pcSasCard" hidden>
+      <p style="margin:0;text-align:center">روی صفحه‌ی آی‌باکس هم همین عدد نوشته؟</p>
+      <div class="sas" id="pcSas">----</div>
+      <div class="row" style="justify-content:center"><button class="btn primary" id="pcYes">بله، یکیه</button><button class="btn danger" id="pcNo">نه، فرق داره</button></div>
+    </div>
+    <p class="note">کد فقط برای پیدا کردن آی‌باکس و تأییده. کلید اتصال رمزشده جابه‌جا می‌شه و هیچ‌کس دیگه‌ای نمی‌تونه بخونتش.</p>
+  </section>
+
   <!-- ===== تنظیمات ===== -->
   <section id="v-settings">
     <div class="card" id="linkCard">
@@ -532,6 +556,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
       <p class="note">نزدیک ماشین با بلوتوث، دور از ماشین از راه اینترنت. خودش بهترین راه رو انتخاب می‌کنه و اگه قطع شد خودش دوباره وصل می‌شه.</p>
       <div class="set"><div class="t">الان<small id="lkNow">—</small></div><button class="btn primary" id="lkBleBtn">وصل شدن با بلوتوث</button></div>
       <div class="set"><div class="t">از راه دور (اینترنت)<small id="lkNet">—</small></div><input type="checkbox" class="switch" data-flag="cloud" aria-label="اتصال از راه دور"></div>
+      <div class="set"><div class="t">وصل شدن با کد ۵ رقمی<small>برای آیفون یا هر گوشی بدون بلوتوث</small></div><button class="btn" data-go="paircode">کد دارم</button></div>
       <div class="set"><div class="t">کد اتصال این گوشی<small>با اولین اتصال بلوتوث خودکار گرفته می‌شه</small></div>
         <div class="row"><b class="num" id="lkCode">—</b><button class="btn" id="lkCopy">کپی</button></div></div>
       <div class="set"><div class="t">وارد کردن کد<small>برای گوشی دوم (مثلاً آیفون)</small></div>
@@ -615,7 +640,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     <div class="card about">
       <img src="logo.svg" alt="لوگوی آی‌باکس">
       <div><b style="font:700 22px var(--f-num)">i<span style="color:var(--accent)">Box</span></b>
-        <div class="note">نمایشگر هوشمند خودرو · برنامه <span class="num">0.4</span></div></div>
+        <div class="note">نمایشگر هوشمند خودرو · برنامه <span class="num">0.5</span></div></div>
     </div>
   </section>
 </main>
@@ -754,7 +779,7 @@ const DRAWER = [
   ["عیب‌یابی","car-diag", [["کدهای خطا","car-diag","diag"],["دریچه گاز","m-tps","wave","tps"],["فشار منیفولد","m-map","wave","map"],
     ["جریان هوا","m-maf","wave","maf"],["تریم کوتاه‌مدت","m-stft","wave","stft"],["تریم بلندمدت","m-ltft","wave","ltft"],["سنسور اکسیژن","m-o2","wave","o2"]]],
   ["راه و جهت", null, [["نقشه و مسیریابی","map","map"],["قطب‌نما","car-comp","comp"],["شیب‌سنج","car-tilt","tilt"]]],
-  ["ماشین و دستگاه", null, [["ماشین از دور","remote","remote"],["تنظیمات","settings","set"]]],
+  ["ماشین و دستگاه", null, [["ماشین از دور","remote","remote"],["وصل شدن با کد (آیفون)","paircode","remote"],["تنظیمات","settings","set"]]],
 ];
 function buildDrawer(){
   $("dlist").innerHTML = DRAWER.map(([g,page,items])=>
@@ -788,7 +813,7 @@ $("dq").addEventListener("input", e=>filterDrawer(e.target.value));
 /* ===== routing: پشته‌ی صفحه‌ها، دکمه‌ی برگشت، کشیدن به راست ===== */
 const VIEWS = { rpm:"دور موتور", overview:"خلاصه‌ی موتور", control:"کنترل دستگاه", mirror:"آینه‌ی صفحه‌ی دستگاه", fuelset:"تنظیم بنزین باک",
   map:"نقشه و مسیریابی", "car-engine":"موتور", "car-fuel":"سوخت", "car-trips":"سفرها", "car-elec":"برق", "car-perf":"عملکرد",
-  "car-diag":"عیب‌یابی", "car-tilt":"شیب‌سنج", "car-comp":"قطب‌نما", remote:"ماشین از دور", settings:"تنظیمات" };
+  "car-diag":"عیب‌یابی", "car-tilt":"شیب‌سنج", "car-comp":"قطب‌نما", remote:"ماشین از دور", settings:"تنظیمات", paircode:"وصل شدن با کد" };
 const TABS = ["rpm","overview","control","map"];
 const viewOk = v => !!VIEWS[v] || (v.startsWith("m-") && !!T[v.slice(2)]);
 const viewTitle = v => v.startsWith("m-") ? T[v.slice(2)][0] : VIEWS[v];
@@ -810,6 +835,7 @@ function go(v, how="push"){
   if (v==="car-comp") startGeo();
   if (sec==="metric") setupMetric(v.slice(2));
   if (v==="fuelset") fsInit();
+  if (v==="paircode") pcReset();
   $("main").scrollTop=0;
   render(true);
 }
@@ -1579,7 +1605,7 @@ let bleDev=null, bleRx=null, bleBuf="", bleWant=false, bleBusy=false;
 const dec=new TextDecoder(), enc=new TextEncoder();
 async function bleConnect(){                                  // بار اول: کاربر دستگاه رو انتخاب می‌کنه
   if (!navigator.bluetooth){
-    toast(isIOS ? "آیفون بلوتوث وب نداره؛ کد اتصال رو از گوشی دیگه وارد کن" : "این مرورگر بلوتوث نداره؛ با Chrome باز کن", "", 4500); return; }
+    go("paircode"); return; }
   if (!window.isSecureContext){ toast("بلوتوث فقط روی آدرس https کار می‌کنه"); return; }
   try{
     const d = await navigator.bluetooth.requestDevice({ filters:[{namePrefix:"EyeBox"},{namePrefix:"iBox"},{services:[NUS_SVC]}], optionalServices:[NUS_SVC] });
@@ -1713,7 +1739,7 @@ function renderLinkCard(){
 }
 document.addEventListener("click", e=>{ const b=e.target.closest("[data-forget]"); if (b) cmd("wifi forget "+decodeURIComponent(b.dataset.forget), "شبکه حذف شد"); });
 $("lkBleBtn").onclick=()=>LK.ble ? bleDisconnect() : bleConnect();
-$("connectBtn").onclick=()=>{ if (navigator.bluetooth) bleConnect(); else go("settings"); };
+$("connectBtn").onclick=()=>{ if (navigator.bluetooth) bleConnect(); else go("paircode"); };
 $("lkSave").onclick=()=>{
   const v=$("lkInput").value.trim().replace(/\s/g,"").toLowerCase(), m=v.match(/^ebx1-([0-9a-f]{16})-([0-9a-f]{64})$/);
   if (!m){ toast("کد باید با EBX1- شروع بشه", "hot"); return; }
@@ -1729,6 +1755,70 @@ $("wifiSend").onclick=()=>{
   if (!LK.ble){ toast("رمز وای‌فای فقط از نزدیک (بلوتوث) فرستاده می‌شه"); return; }
   send(`wifi add ${ss}\t${pw}`); $("wifiPass").value="";
 };
+
+/* ===== وصل شدن با کد ۵ رقمی (طرح PAIR_CODE_DESIGN.md، آی‌باکس v32.3+) =====
+   a = phonePub(65) | HMAC(کد، phonePub)[16]  →  eyebox/p/<h>/a
+   b = devPub(65) | iv(12) | AES-GCM(K، {"tid","k"})  ←  eyebox/p/<h>/b
+   K = HKDF-SHA256(ECDH، salt=کد، info="eyebox-pair-v1")، عدد تأیید = SHA-256(phonePub|devPub) → ۴ رقم */
+const te = new TextEncoder();
+const hexOf = b => [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+async function pcTopicFor(code){ return "eyebox/p/" + hexOf(await crypto.subtle.digest("SHA-256", te.encode("eyebox-pair"+code))).slice(0,16); }
+async function pcSasFor(phonePub, devPub){
+  const both=new Uint8Array(130); both.set(phonePub); both.set(devPub,65);
+  const h=new Uint8Array(await crypto.subtle.digest("SHA-256", both));
+  return String((h[0]*16777216 + h[1]*65536 + h[2]*256 + h[3]) % 10000).padStart(4,"0");
+}
+let PC=null;
+function pcState(t){ $("pcState").textContent=t; }
+function pcClose(){ if (PC){ clearTimeout(PC.timer); try{ PC.c && PC.c.end(true); }catch(e){} PC.c=null; } }
+function pcReset(){ pcClose(); PC=null; $("pcIn").value=""; $("pcSasCard").hidden=true; $("pcGo").disabled=false; pcState(""); }
+async function pairWithCode(code){
+  if (!/^\d{5}$/.test(code)){ pcState("کد باید ۵ رقم باشه"); return; }
+  if (!window.mqtt || !crypto.subtle){ pcState("این مرورگر رمزنگاری لازم رو نداره (آدرس https؟)"); return; }
+  pcClose(); $("pcSasCard").hidden=true; $("pcGo").disabled=true; pcState("در حال وصل شدن…");
+  try{
+    const topic = await pcTopicFor(code);
+    const kp = await crypto.subtle.generateKey({name:"ECDH", namedCurve:"P-256"}, false, ["deriveBits"]);
+    const pub = new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey));
+    const hk = await crypto.subtle.importKey("raw", te.encode(code), {name:"HMAC", hash:"SHA-256"}, false, ["sign"]);
+    const msg = new Uint8Array(81); msg.set(pub); msg.set(new Uint8Array(await crypto.subtle.sign("HMAC", hk, pub)).slice(0,16), 65);
+    const c = mqtt.connect(BROKER_WSS, { clientId:"ibox-pair-"+Math.random().toString(16).slice(2,10), clean:true, reconnectPeriod:0, connectTimeout:10000 });
+    const me = PC = { c, done:false, timer:null, result:null };
+    c.on("error", ()=>{ if (!me.done){ pcState("به اینترنت وصل نشد؛ دوباره امتحان کن."); $("pcGo").disabled=false; pcClose(); } });
+    c.on("connect", ()=>{
+      c.subscribe(topic+"/b", ()=>{
+        c.publish(topic+"/a", msg); pcState("منتظر آی‌باکس…");
+        me.timer = setTimeout(()=>{ if (!me.done){ pcState("جوابی نیومد. کد درسته؟ آی‌باکس به اینترنت وصله؟ (هر کد فقط ۲ دقیقه کار می‌کنه)"); $("pcGo").disabled=false; pcClose(); } }, 25000);
+      });
+    });
+    c.on("message", async (t, p)=>{
+      if (me.done || PC!==me) return;
+      const b = new Uint8Array(p); if (b.length < 65+12+16+2 || b[0]!==4) return;
+      try{
+        const devPub = b.slice(0,65);
+        const dk = await crypto.subtle.importKey("raw", devPub, {name:"ECDH", namedCurve:"P-256"}, false, []);
+        const sh = await crypto.subtle.deriveBits({name:"ECDH", public:dk}, kp.privateKey, 256);
+        const hkdf = await crypto.subtle.importKey("raw", sh, "HKDF", false, ["deriveKey"]);
+        const K = await crypto.subtle.deriveKey({name:"HKDF", hash:"SHA-256", salt:te.encode(code), info:te.encode("eyebox-pair-v1")}, hkdf, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+        const j = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:b.slice(65,77), tagLength:128}, K, b.slice(77))));
+        if (!/^[0-9a-f]{16}$/.test(j.tid) || !/^[0-9a-f]{64}$/.test(j.k) || me.done) return;
+        me.done=true; me.result={tid:j.tid, k:j.k}; clearTimeout(me.timer);
+        $("pcSas").textContent = await pcSasFor(pub, devPub); $("pcSasCard").hidden=false;
+        pcState("فقط اگه عدد روی آی‌باکس هم همینه «بله» رو بزن."); vib(30);
+        try{ c.end(true); }catch(e){}
+      }catch(e){}                                                    // با کد ما باز نشد: نادیده
+    });
+  }catch(e){ pcState("وصل نشد؛ دوباره امتحان کن."); $("pcGo").disabled=false; }
+}
+$("pcGo").onclick=()=>pairWithCode($("pcIn").value.trim().replace(/[۰-۹]/g, d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+$("pcIn").addEventListener("input", e=>{ const v=e.target.value.replace(/[۰-۹]/g, d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/\D/g,"").slice(0,5); e.target.value=v; if (v.length===5 && !$("pcGo").disabled) $("pcGo").click(); });
+$("pcYes").onclick=()=>{
+  if (!PC?.result) return;
+  LK.pair = PC.result; store.set("pair3", LK.pair); PC=null;
+  if (S.mode==="demo"){ S.mode="off"; S.d={}; }
+  netConnect(); updateStatus(); toast("وصل شدی؛ از این به بعد خودش وصل می‌شه", "ok", 3000); go("rpm", "replace");
+};
+$("pcNo").onclick=()=>{ PC=null; $("pcSasCard").hidden=true; $("pcGo").disabled=false; $("pcIn").value=""; pcState("ذخیره نشد. یه کد جدید روی آی‌باکس بگیر و دوباره امتحان کن."); };
 
 /* ===== نصب روی صفحه‌ی اصلی ===== */
 const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
