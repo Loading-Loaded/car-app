@@ -2,21 +2,23 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>آی‌باکس</title>
+<meta name="description" content="نمایش و کنترل آی‌باکس از روی گوشی">
 <meta name="theme-color" content="#0a0f17">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="iBox">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&family=Oxanium:wght@500;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
-/* Layout: one-screen cabin app — brand bar on top, one view at a time, five-tab bar at the bottom.
-   Colors come from the iBox logo: cyan glow + orange stripe on deep navy. Dark-first (night driving). */
+/* Layout: phone app. Header (back · title · link · all-sections), one view at a time, five-tab bar.
+   Colors from the iBox logo: cyan glow + orange stripe on deep navy. Dark-first (night driving). */
 :root{
   --bg:#0a0f17; --panel:#121925; --panel2:#18212f; --line:#222c3b; --fg:#e6edf6; --dim:#8191a7;
   --accent:#38e1ff; --on-accent:#04202a; --accent2:#ff8a1e;
@@ -34,28 +36,34 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--f-text);display:flex;flex-direction:column;
-  padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+  padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent;overscroll-behavior:none;overflow:hidden}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+[hidden]{display:none!important}
 
-header{display:flex;align-items:center;gap:10px;padding-block:8px;border-bottom:1px solid var(--line)}
+header{display:flex;align-items:center;gap:8px;min-height:56px;padding-block:6px;border-bottom:1px solid var(--line)}
+.iconbtn{border:0;background:transparent;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none;color:var(--fg)}
+.iconbtn:active{background:var(--panel2)}
+.iconbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .brand{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-.brand img{height:50px;width:auto;margin-block:-6px}
+.brand img{height:46px;width:auto;margin-block:-6px}
 .brand b{font:700 22px/1 var(--f-num);letter-spacing:.02em}
 .brand b span{color:var(--accent)}
-.brand small{display:block;font-size:11px;color:var(--dim);line-height:1.2}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--dim);background:transparent;white-space:nowrap}
+h1{flex:1;min-width:0;font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--dim);background:transparent;white-space:nowrap;flex:none}
 .pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
 .pill.on{color:var(--ok)} .pill.demo{color:var(--accent2)} .pill.busy{color:var(--warn)}
-.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 14px;font-size:14px}
+.pill.busy::before{animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 14px;font-size:14px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
 .btn.danger{color:var(--hot)}
-.chip{font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid var(--accent2);color:var(--accent2);white-space:nowrap}
+.btn:disabled{opacity:.45}
 
-main{flex:1;overflow-y:auto;padding-block:16px}
+main{flex:1;overflow-y:auto;padding-block:14px;position:relative}
 section{display:none;max-width:760px;margin:0 auto;flex-direction:column;gap:14px}
 section.active{display:flex}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
@@ -65,31 +73,78 @@ section.active{display:flex}
 .between{justify-content:space-between}
 h2{font-size:18px;margin:0;text-wrap:balance}
 h3{font-size:14px;margin:0 0 8px;color:var(--dim);font-weight:500}
-.back{border:0;background:transparent;color:var(--accent);padding:4px 0;font-size:14px}
+.link{border:0;background:transparent;color:var(--accent);padding:4px 0;font-size:14px}
 
-/* gauge + tiles */
-.gauge{display:block;width:100%;max-width:420px;margin:0 auto}
+/* gauges */
+.gsvg{display:block;width:100%;height:auto;margin:0 auto}
+.gauge-big{max-width:440px}
+.under{display:flex;justify-content:center;gap:28px;margin-top:-6px;text-align:center}
+.under .v{font:700 28px/1.1 var(--f-num)} .under .u{font-size:12px;color:var(--dim)}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mini{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;text-align:right;border-inline-start:4px solid var(--line)}
+.mini .v{font:700 20px/1.3 var(--f-num)} .mini .u{font-size:11px;color:var(--dim)}
+.mini.ok{border-inline-start-color:var(--ok)} .mini.warn{border-inline-start-color:var(--warn)} .mini.hot{border-inline-start-color:var(--hot)} .mini.cold{border-inline-start-color:var(--cold)} .mini.info{border-inline-start-color:var(--accent)}
+.connect{display:flex;gap:12px;align-items:center;justify-content:space-between;border-color:var(--accent)}
+
+/* overview */
+.ov{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ov .card{padding:10px;text-align:center}
+.ov .card.wide{grid-column:1/-1;text-align:right}
+.hbar{height:26px;border:2px solid var(--accent);border-radius:8px;padding:3px;margin-top:8px;direction:ltr}
+.hbar i{display:block;height:100%;width:0;border-radius:4px;background:var(--accent);transition:width .3s}
+.knock{display:flex;align-items:center;gap:12px}
+.lamp{width:34px;height:34px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 25%,transparent);flex:none}
+.lamp.hot{background:var(--hot);box-shadow:0 0 14px var(--hot);animation:blink .4s infinite}
+.lamp.na{background:var(--line);box-shadow:none}
+
+/* tiles */
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;border-inline-start:4px solid var(--ok)}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;border-inline-start:4px solid var(--ok);text-align:right}
 .tile .v{font-size:24px;font-weight:700} .tile .u{font-size:12px;color:var(--dim);margin-left:4px}
 .tile .vt{font-size:17px;font-weight:700}
 .tile.warn{border-inline-start-color:var(--warn)} .tile.hot{border-inline-start-color:var(--hot)} .tile.cold{border-inline-start-color:var(--cold)}
 .tile.na{border-inline-start-color:var(--line)} .tile.na .v{color:var(--dim)} .tile.info{border-inline-start-color:var(--accent)}
 
-/* folder grid */
-.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.folder{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:right;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-.folder svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.8}
-.folder b{font-size:15px} .folder span{font-size:12px;color:var(--dim)}
+/* metric */
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.facts .card{padding:10px 6px}
+.facts b{font:700 18px var(--f-num)}
+.bigtxt{font:700 64px/1.1 var(--f-num);text-align:center;padding:30px 0}
 
-/* tables */
+/* control */
+#v-control.active{min-height:100%}
+.ctlTop{text-align:center}
+.ctlPage{font-size:22px;font-weight:700;min-height:36px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;direction:ltr;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.k{border:1px solid var(--line);background:var(--panel2);border-radius:22px;font:700 34px/1 var(--f-num);color:var(--fg);display:grid;place-items:center;
+  aspect-ratio:1;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .06s,background .06s}
+.k.ok{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-size:28px}
+.k.down,.k:active{transform:scale(.94);background:color-mix(in srgb,var(--accent) 30%,var(--panel2))}
+.k.ok.down,.k.ok:active{background:color-mix(in srgb,var(--accent) 75%,#fff)}
+.k.home{aspect-ratio:auto;height:72px;font:700 22px var(--f-text);width:100%}
+.pad.small{gap:10px;width:100%;max-width:300px;margin:0 auto}
+.pad.small .k{border-radius:14px;font-size:22px}
+.pad.small .k.ok{font-size:18px}
+.pad.small .k.home{height:48px;font-size:16px}
+.pad .sp{visibility:hidden}
+
+/* LCD mirror */
+.lcd{aspect-ratio:4/3;width:100%;max-width:480px;margin:0 auto;background:#000;border-radius:12px;border:6px solid #1c2433;
+  box-shadow:0 0 0 1px var(--line),0 10px 30px #0008;color:#e9f1ff;display:flex;flex-direction:column;overflow:hidden;cursor:pointer}
+.lcd .hd{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:#0d1420;font:700 13px var(--f-num);color:#ffa500}
+.lcd .bd{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 10px;min-height:0}
+.lcd .bd svg{height:100%;width:auto;max-width:100%}
+.lcd ul{list-style:none;margin:0;padding:0;width:100%;font-size:15px}
+.lcd li{padding:3px 10px;border-radius:6px;color:#9fb0c6}
+.lcd li.sel{background:#ffa500;color:#000;font-weight:700}
+.lcd .big{font:700 30px var(--f-text);text-align:center}
+
+/* folders / trips / diag (unchanged parts) */
 .tbl{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
 th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-size:12px;color:var(--dim);font-weight:500}
 tr.live td:first-child::after{content:" ●";color:var(--ok);font-size:10px}
-
-/* tilt */
 .tilt{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:520px){.tilt{grid-template-columns:1fr}}
 .tilt .card{text-align:center}
@@ -98,29 +153,12 @@ tr.live td:first-child::after{content:" ●";color:var(--ok);font-size:10px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
 .seg button{border:0;background:transparent;padding:6px 12px;font-size:14px;color:var(--dim)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);font-weight:700}
-
-/* compass */
 .compass{display:block;width:100%;max-width:340px;margin:0 auto}
-.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
-.facts .card{padding:10px 6px}
-
-/* map */
-#map{height:min(58vh,520px);border-radius:14px;border:1px solid var(--line);z-index:0;overflow:hidden;position:relative}
-.leaflet-container{background:var(--panel);font-family:var(--f-text)}
-.carpin{width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 2px var(--accent)}
-.mepin{width:16px;height:16px;border-radius:50%;background:var(--accent2);border:3px solid #fff}
-
-/* dtc */
 .dtc{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
 .dtc:last-child{border-bottom:0}
 .dtc .code{font-size:18px;font-weight:700;color:var(--warn);min-width:68px}
 .confirm{display:none;gap:8px;align-items:center;flex-wrap:wrap}
 .confirm.show{display:flex}
-
-/* remote */
-.alert{display:none;gap:10px;align-items:center;background:color-mix(in srgb,var(--hot) 14%,var(--panel));border:1px solid var(--hot);border-radius:14px;padding:12px 14px}
-.alert.show{display:flex}
-.alert b{color:var(--hot)}
 .status{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
 .status .v{font-size:20px;font-weight:700}
 .cmds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -133,87 +171,189 @@ tr.live td:first-child::after{content:" ●";color:var(--ok);font-size:10px}
 .log .dot.hot{background:var(--hot)} .log .dot.warn{background:var(--warn)} .log .dot.ok{background:var(--ok)} .log .dot.info{background:var(--accent)}
 .log time{color:var(--dim);font-size:12px;margin-inline-start:auto;white-space:nowrap}
 
+/* map + route */
+#map{height:min(52vh,500px);border-radius:14px;border:1px solid var(--line);z-index:0;overflow:hidden;position:relative}
+.leaflet-container{background:var(--panel);font-family:var(--f-text)}
+.carpin{width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 2px var(--accent)}
+.mepin{width:16px;height:16px;border-radius:50%;background:var(--accent2);border:3px solid #fff}
+.destpin{width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--hot);border:3px solid #fff}
+.search{display:flex;gap:8px}
+.search input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 12px;font-size:16px}
+.results{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.results button{border:0;border-bottom:1px solid var(--line);background:transparent;text-align:right;padding:10px 12px;font-size:14px}
+.results button:last-child{border-bottom:0}
+
+/* fuel set */
+.fuelbar{display:flex;align-items:center;gap:6px;direction:ltr;touch-action:none;user-select:none}
+.fuelbar .seg8{flex:1;height:64px;border-radius:8px;background:color-mix(in srgb,var(--dim) 22%,var(--bg));border:0;padding:0}
+.fuelbar .seg8.on{background:var(--ok)} .fuelbar.low .seg8.on{background:var(--hot)} .fuelbar.mid .seg8.on{background:var(--warn)}
+.fuelbar b{font:700 20px var(--f-num);width:22px;text-align:center}
+.fsTxt{font-size:26px;font-weight:700;text-align:center}
+
 /* settings */
 .set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .set:last-child{border-bottom:0}
 .set .t{min-width:0} .set .t small{display:block;font-size:12px;color:var(--dim)}
 .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.stepper button{border:0;background:var(--panel2);width:36px;height:34px;font-size:18px}
+.stepper button{border:0;background:var(--panel2);width:38px;height:36px;font-size:18px}
 .stepper output{min-width:86px;text-align:center;font-family:var(--f-num);direction:ltr;unicode-bidi:isolate}
 .swatches{display:flex;gap:8px;flex-wrap:wrap}
 .swatch{width:34px;height:34px;border-radius:10px;border:2px solid var(--line)}
 .swatch[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 0 2px var(--bg) inset}
-.switch{appearance:none;width:46px;height:26px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:background .2s}
+.switch{appearance:none;width:46px;height:26px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:background .2s;flex:none}
 .switch::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:right .2s}
 .switch:checked{background:var(--accent)} .switch:checked::after{right:23px}
 .about{display:flex;gap:14px;align-items:center}
 .about img{width:110px;height:auto}
 
-nav{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--panel);
+/* bottom tabs */
+nav.tabs{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--panel);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
-nav button{border:0;background:transparent;padding:8px 0 6px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:2px}
-nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
-nav button[aria-current="page"]{color:var(--accent)}
+nav.tabs button{border:0;background:transparent;padding:8px 0 6px;font-size:12px;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
 
-.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
-  background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:10px;font-size:14px;max-width:90vw;display:none;z-index:1000}
-.toast.show{display:block}
-@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+/* drawer: every screen in one list, jump straight in */
+#scrim{position:fixed;inset:0;background:#0009;opacity:0;pointer-events:none;transition:opacity .2s;z-index:900}
+#scrim.show{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;bottom:0;inset-inline-start:0;width:min(86vw,380px);background:var(--panel);border-inline-end:1px solid var(--line);
+  transform:translateX(105%);transition:transform .22s ease;z-index:901;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#drawer.show{transform:none}
+.dhead{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.dhead input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 12px;font-size:16px}
+#dlist{overflow-y:auto;flex:1;padding:4px 0 16px}
+.dgrp{padding:12px 16px 4px;font-size:12px;color:var(--dim);display:flex;justify-content:space-between;align-items:center}
+.dgrp button{border:0;background:transparent;color:var(--accent);font-size:12px;padding:0}
+.ditem{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;text-align:right;padding:11px 16px;font-size:15px}
+.ditem:active,.ditem[aria-current="page"]{background:var(--panel2)}
+.ditem svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ditem .dv{margin-inline-start:auto;font:500 13px var(--f-num);color:var(--dim);direction:ltr}
+
+/* toast: small, top, goes away by itself */
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translate(-50%,-160%);transition:transform .25s ease;
+  max-width:min(92vw,420px);padding:6px 14px;border-radius:99px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--panel2);color:var(--fg);border:1px solid var(--line);box-shadow:0 4px 16px #0006;z-index:2000;pointer-events:none}
+.toast.show{transform:translate(-50%,0)}
+.toast.hot{border-color:var(--hot)} .toast.ok{border-color:var(--ok)}
+
+/* install hint */
+.inst{position:fixed;left:12px;right:12px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:800;display:flex;gap:10px;align-items:center;
+  background:var(--panel2);border:1px solid var(--accent);border-radius:14px;padding:10px 12px;font-size:13px;box-shadow:0 6px 20px #0007}
+.inst img{width:36px;height:36px;border-radius:9px;flex:none}
+.inst div{flex:1;min-width:0}
+
+/* landscape: two gauges side by side, nothing else */
+#dual{display:none;direction:ltr;position:fixed;inset:0;z-index:1500;background:var(--bg);align-items:center;justify-content:center;gap:2vw;
+  padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+#dual svg{height:94vh;width:auto;max-width:48vw}
+@media (orientation:landscape) and (max-height:560px){
+  body.dualok #dual{display:flex}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 
 <header class="gut">
-  <div class="brand">
-    <img src="logo.svg" alt="">
-    <div><b>i<span>Box</span></b><small>آی‌باکس</small></div>
-  </div>
-  <button id="status" class="pill demo" title="روشن/خاموش کردن دمو">دمو</button>
-  <button id="connectBtn" class="btn primary">بلوتوث</button>
+  <button id="backBtn" class="iconbtn" aria-label="برگشت" hidden><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  <div class="brand" id="brand"><img src="logo.svg" alt=""><b>i<span>Box</span></b></div>
+  <h1 id="title" hidden></h1>
+  <button id="status" class="pill demo" aria-label="وضعیت اتصال">نمایشی</button>
+  <button id="menuBtn" class="iconbtn" aria-label="همه‌ی بخش‌ها"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </header>
 
-<main class="gut">
+<main class="gut" id="main">
 
-  <!-- ===== خانه ===== -->
-  <section id="v-home">
+  <!-- ===== دور موتور (صفحه‌ی اول) ===== -->
+  <section id="v-rpm">
+    <div class="card connect" id="connectCard" hidden>
+      <div><b>به آی‌باکس وصل نیستی</b><div class="note" id="connectNote">نزدیک ماشین یه بار وصل شو؛ از اون به بعد خودش وصل می‌شه.</div></div>
+      <button class="btn primary" id="connectBtn">وصل شو</button>
+    </div>
+    <svg class="gsvg gauge-big" id="gRpm" viewBox="0 0 200 172" direction="ltr" aria-label="دور موتور"></svg>
+    <div class="under">
+      <div><div class="v num" id="uSpd">--</div><div class="u">km/h</div></div>
+      <div><div class="v num" id="uGear">--</div><div class="u">دنده</div></div>
+    </div>
+    <div class="minis">
+      <button class="mini" data-go="m-bat" data-mk="bat"><div class="label">باتری</div><span class="v num">--</span> <span class="u">V</span></button>
+      <button class="mini" data-go="m-clt" data-mk="clt"><div class="label">دمای آب</div><span class="v num">--</span> <span class="u">°C</span></button>
+      <button class="mini" data-go="fuelset" data-mk="fuel"><div class="label">بنزین</div><span class="v num">--</span> <span class="u">%</span></button>
+    </div>
+  </section>
+
+  <!-- ===== خلاصه‌ی موتور ===== -->
+  <section id="v-overview">
+    <div class="ov">
+      <button class="card" data-go="m-bat"><div class="label">ولتاژ باتری</div><svg class="gsvg" id="gOvBat" viewBox="0 0 200 172" direction="ltr"></svg></button>
+      <button class="card" data-go="m-clt"><div class="label">دمای آب</div><svg class="gsvg" id="gOvClt" viewBox="0 0 200 172" direction="ltr"></svg></button>
+      <button class="card" data-go="m-oil"><div class="label">دمای روغن</div><svg class="gsvg" id="gOvOil" viewBox="0 0 200 172" direction="ltr"></svg></button>
+      <button class="card" data-go="m-lph"><div class="label">مصرف لحظه‌ای</div>
+        <div style="padding-top:18px"><span class="num" style="font-size:34px;font-weight:700" id="ovLph">--</span> <span class="note">L/h</span></div>
+        <div class="hbar"><i id="ovLphBar"></i></div>
+        <div class="note num" id="ovLp100" style="margin-top:6px">--</div></button>
+      <button class="card wide" data-go="m-knock"><div class="knock"><span class="lamp na" id="ovLamp"></span>
+        <div style="flex:1"><b id="ovKnock">ناک</b><div class="note" id="ovKnockN">--</div></div></div></button>
+    </div>
+  </section>
+
+  <!-- ===== کنترل ===== -->
+  <section id="v-control">
+    <div class="ctlTop"><div class="label">الان روی صفحه‌ی دستگاه</div><div class="ctlPage" id="ctlPage">--</div></div>
+    <div class="pad" id="padBig">
+      <span class="sp"></span><button class="k" data-key="up" aria-label="بالا">▲</button><span class="sp"></span>
+      <button class="k" data-key="back" aria-label="برگشت">◀</button><button class="k ok" data-key="ok" aria-label="تأیید">OK</button><button class="k" data-key="ok" aria-label="ورود">▶</button>
+      <span class="sp"></span><button class="k" data-key="down" aria-label="پایین">▼</button><span class="sp"></span>
+    </div>
+    <button class="k home" data-key="home">منو</button>
+    <p class="note" style="text-align:center">▲ و ▼ رو نگه داری پشت سر هم می‌ره.</p>
+  </section>
+
+  <!-- ===== آینه‌ی صفحه‌ی دستگاه ===== -->
+  <section id="v-mirror">
+    <div class="lcd" id="lcd" role="img" aria-label="صفحه‌ی دستگاه"><div class="hd"><span id="lcdEn">--</span><span id="lcdFa"></span></div><div class="bd" id="lcdBody"></div></div>
+    <div class="pad small" id="padSmall">
+      <span class="sp"></span><button class="k" data-key="up" aria-label="بالا">▲</button><span class="sp"></span>
+      <button class="k" data-key="back" aria-label="برگشت">◀</button><button class="k ok" data-key="ok" aria-label="تأیید">OK</button><button class="k" data-key="ok" aria-label="ورود">▶</button>
+      <span class="sp"></span><button class="k" data-key="down" aria-label="پایین">▼</button><span class="sp"></span>
+    </div>
+    <div class="row" style="justify-content:center"><button class="btn" data-key-solo="home">منوی دستگاه</button><button class="btn" data-go="control">کنترل تمام‌صفحه</button></div>
+  </section>
+
+  <!-- ===== یک مقدار (مستقیم) ===== -->
+  <section id="v-metric">
+    <svg class="gsvg gauge-big" id="gMetric" viewBox="0 0 200 172" direction="ltr"></svg>
+    <div class="bigtxt" id="mText" hidden></div>
+    <div class="facts">
+      <div class="card"><div class="label">کمترین</div><b id="mMin">--</b></div>
+      <div class="card"><div class="label">الان</div><b id="mNow">--</b></div>
+      <div class="card"><div class="label">بیشترین</div><b id="mMax">--</b></div>
+    </div>
+    <div class="card"><h3>۲ دقیقه‌ی گذشته</h3><svg id="mSpark" viewBox="0 0 320 90" style="width:100%;height:auto;display:block" direction="ltr"></svg></div>
+    <div class="row"><button class="btn" id="mOnDev" hidden>نشون دادن روی دستگاه</button></div>
+  </section>
+
+  <!-- ===== تنظیم بنزین باک ===== -->
+  <section id="v-fuelset">
+    <p class="note" style="text-align:center">عقربه‌ی بنزین ماشین الان کجاست؟</p>
     <div class="card">
-      <svg class="gauge" viewBox="0 0 200 150" direction="ltr" aria-label="سرعت و دور موتور">
-        <path id="rpmTrack" fill="none" stroke="var(--line)" stroke-width="10" stroke-linecap="round"/>
-        <path id="rpmRed" fill="none" stroke="var(--hot)" stroke-opacity=".35" stroke-width="10"/>
-        <path id="rpmArc" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round"/>
-        <g id="rpmTicks" fill="var(--dim)" font-size="8" font-family="Oxanium,monospace" text-anchor="middle"></g>
-        <text id="spd" x="100" y="100" text-anchor="middle" font-size="44" font-weight="700" fill="var(--fg)" font-family="Oxanium,monospace">0</text>
-        <text x="100" y="116" text-anchor="middle" font-size="10" fill="var(--dim)">km/h</text>
-        <text id="rpmTxt" x="100" y="140" text-anchor="middle" font-size="12" fill="var(--accent)" font-family="Oxanium,monospace">0 rpm</text>
-      </svg>
+      <div class="fuelbar" id="fuelbar"><b style="color:var(--hot)">E</b><span id="fsSegs" style="display:flex;gap:6px;flex:1"></span><b style="color:var(--ok)">F</b></div>
+      <div class="fsTxt" id="fsTxt" style="margin-top:12px">--</div>
+      <div class="note num" id="fsL" style="text-align:center">--</div>
     </div>
-    <div class="tiles" data-tiles="home"></div>
-    <div class="card row between">
-      <div><div class="label">آب‌وهوا</div><div><b class="num" id="wxT">18°</b> <span id="wxTxt">آفتابی</span></div></div>
-      <div><div class="label">رفیق راه</div><div id="buddy">آماده‌ای؟ بزن بریم!</div></div>
-    </div>
+    <div class="row" style="justify-content:center"><button class="btn" id="fsEmpty">خالی</button><button class="btn primary" id="fsSave">ذخیره</button></div>
+    <p class="note" id="fsNow" style="text-align:center"></p>
   </section>
 
-  <!-- ===== خودرو (پوشه‌ها) ===== -->
-  <section id="v-car">
-    <h2>منوی دستگاه</h2>
-    <p class="note">همون پوشه‌های نمایشگر آی‌باکس، با جزئیات بیشتر.</p>
-    <div class="folders" id="folders"></div>
-  </section>
-
-  <section id="v-car-engine">
-    <button class="back" data-go="car">→ منوی دستگاه</button><h2>موتور</h2>
-    <div class="tiles" data-tiles="engine"></div>
-  </section>
-
+  <section id="v-car-engine"><div class="tiles" data-tiles="engine"></div></section>
   <section id="v-car-fuel">
-    <button class="back" data-go="car">→ منوی دستگاه</button><h2>سوخت</h2>
     <div class="tiles" data-tiles="fuel"></div>
+    <button class="btn" data-go="fuelset">تنظیم بنزین باک</button>
     <p class="note">میانگین و برد باک از روی حجم باک و ضریب کالیبراسیون سوخت در تنظیمات حساب می‌شه.</p>
   </section>
 
   <section id="v-car-trips">
-    <button class="back" data-go="car">→ منوی دستگاه</button><h2>سفرها</h2>
     <div class="card tbl"><table>
       <thead><tr><th>بازه</th><th>مسافت</th><th>زمان</th><th>میانگین سرعت</th><th>سوخت</th><th>مصرف</th></tr></thead>
       <tbody id="tripRows"></tbody>
@@ -221,7 +361,6 @@ nav button[aria-current="page"]{color:var(--accent)}
   </section>
 
   <section id="v-car-elec">
-    <button class="back" data-go="car">→ منوی دستگاه</button><h2>برق</h2>
     <div class="tiles" data-tiles="elec"></div>
     <div class="card">
       <h3>ولتاژ باتری در ۲۴ ساعت گذشته</h3>
@@ -230,12 +369,11 @@ nav button[aria-current="page"]{color:var(--accent)}
   </section>
 
   <section id="v-car-perf">
-    <button class="back" data-go="car">→ منوی دستگاه</button><h2>عملکرد</h2>
     <div class="tiles" data-tiles="perf"></div>
     <div class="card">
       <h3>اندازه‌گیری</h3>
       <div class="row">
-        <button class="btn primary" data-perf="0">۰ تا ۱۰۰</button>
+        <button class="btn primary" data-perf="0">شتاب</button>
         <button class="btn" data-perf="1">ترمز ۱۰۰ تا ۰</button>
         <button class="btn" data-perf="2">۴۰۲ متر</button>
       </div>
@@ -246,35 +384,27 @@ nav button[aria-current="page"]{color:var(--accent)}
   </section>
 
   <section id="v-car-diag">
-    <button class="back" data-go="car">→ منوی دستگاه</button><h2>عیب‌یابی</h2>
-    <div class="card">
-      <h3>اطلاعات ECU</h3>
-      <div class="status" id="ecuInfo"></div>
-    </div>
+    <div class="card"><h3>ماشین</h3><div class="status" id="ecuInfo"></div></div>
     <div class="card">
       <div class="row between"><h3 style="margin:0">کدهای خطا</h3>
         <div class="row"><button class="btn primary" id="dtcRead">خواندن</button><button class="btn danger" id="dtcClearAsk">پاک کردن</button></div></div>
       <div class="confirm" id="dtcConfirm" style="margin-top:10px">
-        <span>کدها از ECU پاک بشن؟ چراغ چک هم خاموش می‌شه.</span>
+        <span>کدها پاک بشن؟ چراغ چک هم خاموش می‌شه.</span>
         <button class="btn danger" id="dtcClearYes">بله، پاک کن</button><button class="btn" id="dtcClearNo">نه</button>
       </div>
       <div id="dtcList" style="margin-top:6px"></div>
     </div>
-    <h3 style="margin:4px 0 0">داده‌های زنده‌ی ECU</h3>
+    <h3 style="margin:4px 0 0">داده‌های زنده‌ی موتور</h3>
     <div class="tiles" data-tiles="diag"></div>
   </section>
 
   <section id="v-car-tilt">
-    <button class="back" data-go="car">→ منوی دستگاه</button>
     <div class="row between">
-      <h2>شیب‌سنج</h2>
-      <div class="row">
-        <div class="seg" role="group" aria-label="منبع شیب">
-          <button data-src="tilt" data-v="car" aria-pressed="true">ماشین</button>
-          <button data-src="tilt" data-v="phone" aria-pressed="false">گوشی</button>
-        </div>
-        <button class="btn" id="tiltZero">صفر کردن</button>
+      <div class="seg" role="group" aria-label="منبع شیب">
+        <button data-src="tilt" data-v="car" aria-pressed="true">ماشین</button>
+        <button data-src="tilt" data-v="phone" aria-pressed="false">گوشی</button>
       </div>
+      <button class="btn" id="tiltZero">صفر کردن</button>
     </div>
     <div class="tilt">
       <div class="card">
@@ -310,17 +440,13 @@ nav button[aria-current="page"]{color:var(--accent)}
         <div class="note">بیشترین: <span class="num" id="rollMax">0°</span></div>
       </div>
     </div>
-    <p class="note" id="tiltNote">داده از ژیروسکوپ روی دستگاه. با «صفر کردن» حالت فعلی ماشین صاف حساب می‌شه.</p>
+    <p class="note" id="tiltNote">داده از حسگر روی دستگاه. با «صفر کردن» حالت فعلی ماشین صاف حساب می‌شه.</p>
   </section>
 
   <section id="v-car-comp">
-    <button class="back" data-go="car">→ منوی دستگاه</button>
-    <div class="row between">
-      <h2>قطب‌نما</h2>
-      <div class="seg" role="group" aria-label="منبع جهت">
-        <button data-src="comp" data-v="car" aria-pressed="true">ماشین</button>
-        <button data-src="comp" data-v="phone" aria-pressed="false">گوشی</button>
-      </div>
+    <div class="seg" role="group" aria-label="منبع جهت" style="align-self:flex-start">
+      <button data-src="comp" data-v="car" aria-pressed="true">ماشین</button>
+      <button data-src="comp" data-v="phone" aria-pressed="false">گوشی</button>
     </div>
     <div class="card">
       <svg class="compass" viewBox="0 0 240 240" aria-label="قطب‌نما">
@@ -332,58 +458,59 @@ nav button[aria-current="page"]{color:var(--accent)}
       </svg>
     </div>
     <div class="facts">
-      <div class="card"><div class="label">سرعت GPS</div><div class="num" style="font-size:18px;font-weight:700" id="gspd">--</div></div>
-      <div class="card"><div class="label">ارتفاع</div><div class="num" style="font-size:18px;font-weight:700" id="alt">--</div></div>
-      <div class="card"><div class="label">ماهواره</div><div class="num" style="font-size:18px;font-weight:700" id="sat">--</div></div>
+      <div class="card"><div class="label">سرعت</div><b id="gspd">--</b></div>
+      <div class="card"><div class="label">ارتفاع</div><b id="alt">--</b></div>
+      <div class="card"><div class="label">ماهواره</div><b id="sat">--</b></div>
     </div>
   </section>
 
-  <!-- ===== نقشه ===== -->
+  <!-- ===== نقشه و مسیر ===== -->
   <section id="v-map">
+    <div class="search"><input id="q" type="search" placeholder="کجا می‌ری؟ جستجو کن یا روی نقشه بزن" autocomplete="off" enterkeyhint="search" aria-label="جستجوی مقصد">
+      <button class="btn primary" id="qBtn">جستجو</button></div>
+    <div class="results" id="qRes" hidden></div>
     <div id="map" role="region" aria-label="نقشه"></div>
+    <div class="card" id="routeCard" hidden>
+      <div class="row between" style="flex-wrap:nowrap">
+        <div style="min-width:0"><b id="rtDest">مقصد</b><div class="note" id="rtInfo"></div></div>
+        <button class="iconbtn" id="rtClear" aria-label="پاک کردن مسیر"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="note" id="rtState" style="margin:6px 0 10px"></div>
+      <div class="row"><button class="btn primary" id="rtSend" disabled>فرستادن به آی‌باکس</button><button class="btn" id="rtVoice">راهنمای صوتی با گوگل‌مپ</button></div>
+    </div>
     <div class="card">
       <div class="row between">
         <div><div class="label">ماشین کجاست؟</div><div id="carPos">هنوز موقعیتی ثبت نشده</div><div class="note" id="findTxt"></div></div>
         <svg viewBox="0 0 60 60" width="56" height="56" aria-hidden="true"><g id="findArrow"><path d="M30 6 L44 46 L30 38 L16 46 Z" fill="var(--accent)"/></g></svg>
       </div>
       <div class="row" style="margin-top:10px">
-        <button class="btn primary" id="navGoogle">مسیریابی با Google Maps</button>
-        <button class="btn" id="navApple">Apple Maps</button>
-        <button class="btn" id="navGeo">نشان، بلد…</button>
-      </div>
-      <div class="row" style="margin-top:10px">
+        <button class="btn" id="walkCar">پیاده تا ماشین</button>
         <button class="btn" id="centerCar">نمایش ماشین</button>
         <button class="btn" id="centerMe">نمایش من</button>
       </div>
     </div>
   </section>
 
-  <!-- ===== از راه دور ===== -->
+  <!-- ===== ماشین از دور ===== -->
   <section id="v-remote">
-    <div class="row between"><h2>از راه دور</h2><span class="note" id="rLink">از طریق: دمو</span></div>
-    <div class="alert" id="bumpAlert" role="alert">
-      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--hot)" stroke-width="2"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>
-      <div style="flex:1"><b>ضربه به ماشین!</b><div class="note" id="bumpTxt"></div></div>
-      <button class="btn" id="bumpOk">دیدم</button>
-    </div>
     <div class="card">
-      <h3>وضعیت ماشین</h3>
-      <div class="status">
+      <div class="row between"><h3 style="margin:0">وضعیت ماشین</h3><span class="note" id="rLink"></span></div>
+      <div class="status" style="margin-top:8px">
         <div><div class="label">وضعیت</div><div class="v" id="rState">پارک</div></div>
         <div><div class="label">باتری ماشین</div><div class="v num" id="rBat">--</div></div>
-        <div><div class="label">سوخت</div><div class="v num" id="rFuel">--</div></div>
+        <div><div class="label">بنزین</div><div class="v num" id="rFuel">--</div></div>
         <div><div class="label">باتری دستگاه</div><div class="v num" id="rDev">--</div></div>
         <div><div class="label">آخرین تماس</div><div class="v" id="rSeen">--</div></div>
-        <div><div class="label">محل</div><div class="v"><button class="back" data-go="map">روی نقشه ←</button></div></div>
+        <div><div class="label">محل</div><div class="v"><button class="link" data-go="map">روی نقشه ←</button></div></div>
       </div>
     </div>
     <div class="card">
       <h3>محافظ پارک</h3>
-      <div class="set"><div class="t">هشدار ضربه و جابه‌جایی<small>MPU-6050 دستگاه تکون ماشین پارک‌شده رو حس می‌کنه؛ با SIM800L پیامک هم می‌ده</small></div>
+      <div class="set"><div class="t">هشدار ضربه و جابه‌جایی<small>دستگاه تکون ماشین پارک‌شده رو حس می‌کنه و اگه سیم‌کارت داشته باشه پیامک هم می‌ده</small></div>
         <input type="checkbox" class="switch" data-flag="guard" aria-label="محافظ پارک"></div>
       <div class="set"><div class="t">ضربه‌های ثبت‌شده</div><b class="num" id="rHits">--</b></div>
       <div class="set"><div class="t">تراز کردن<small>وقتی ماشین روی زمین صافه بزن تا شیب‌سنج صفر بشه</small></div><button class="btn" data-cmd="level">تراز کن</button></div>
-      <div class="row" style="margin-top:10px"><button class="btn" id="simBump">شبیه‌سازی ضربه (فقط دمو)</button></div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="simBump">شبیه‌سازی ضربه (فقط نمایشی)</button></div>
     </div>
     <div class="card">
       <h3>فرمان به دستگاه</h3>
@@ -391,43 +518,37 @@ nav button[aria-current="page"]{color:var(--accent)}
         <button class="cmd" data-cmd="find"><b>پیدا کردن ماشین</b><span>صفحه چشمک می‌زنه و بوق می‌زنه</span></button>
         <button class="cmd" data-cmd="screen on"><b>روشن کردن نمایشگر</b><span>صفحه‌ی دستگاه روشن می‌شه</span></button>
         <button class="cmd" data-cmd="screen off"><b>خاموش کردن نمایشگر</b><span>دستگاه کار می‌کنه، فقط صفحه خاموش</span></button>
-        <button class="cmd" data-cmd="beep"><b>بوق</b><span>یه بوق کوتاه از بلندگو</span></button>
-        <button class="cmd" data-cmd="data"><b>گزارش فوری</b><span>سفرها، کدها، اطلاعات ECU همین الان</span></button>
-        <button class="cmd" data-cmd="reconnect"><b>اتصال دوباره به ELM</b><span>اگه داده‌ی ماشین نمی‌رسه</span></button>
+        <button class="cmd" data-cmd="data"><b>گزارش فوری</b><span>سفرها، کدها و اطلاعات ماشین همین الان</span></button>
+        <button class="cmd" data-cmd="reconnect"><b>اتصال دوباره به ماشین</b><span>اگه داده‌ی ماشین نمی‌رسه</span></button>
       </div>
-      <div class="set" style="margin-top:8px"><div class="t">نمایش روی صفحه‌ی دستگاه</div>
-        <div class="row"><select id="goSel" class="btn" aria-label="صفحه">
-          <option value="home">منوی اصلی</option><option value="rpm">دور موتور</option><option value="speed">سرعت</option>
-          <option value="coolant">دمای آب</option><option value="battery">باتری</option><option value="codes">کدهای خطا</option>
-          <option value="guard">محافظ پارک</option><option value="compass">قطب‌نما</option><option value="map">نقشه</option>
-          <option value="incline">شیب‌سنج</option><option value="gmeter">G-meter</option><option value="eyes">چشم‌ها</option>
-          <option value="about">درباره</option></select>
-          <button class="btn primary" id="goBtn">برو</button></div></div>
     </div>
-    <div class="card">
-      <h3>رویدادها</h3>
-      <ul class="log" id="log"></ul>
-    </div>
+    <div class="card"><h3>رویدادها</h3><ul class="log" id="log"></ul></div>
   </section>
 
   <!-- ===== تنظیمات ===== -->
   <section id="v-settings">
-    <div class="row between"><h2>تنظیمات دستگاه</h2><span class="note" id="setSync">در دمو روی همین گوشی ذخیره می‌شه</span></div>
-
     <div class="card" id="linkCard">
-      <h3>اتصال گوشی به دستگاه</h3>
-      <div class="set"><div class="t">بلوتوث (نزدیک ماشین)<small id="lkBle">وصل نیست</small></div><button class="btn" id="lkBleBtn">بلوتوث</button></div>
-      <div class="set"><div class="t">اینترنت (از هر جا)<small id="lkNet">—</small></div><input type="checkbox" class="switch" data-flag="cloud" aria-label="اتصال اینترنتی دستگاه"></div>
-      <div class="set"><div class="t">کد اتصال<small>با اولین اتصال بلوتوث خودکار گرفته می‌شه؛ توی منوی دستگاه هم هست (Settings ← Phone App)</small></div>
+      <h3>اتصال گوشی به آی‌باکس</h3>
+      <p class="note">نزدیک ماشین با بلوتوث، دور از ماشین از راه اینترنت. خودش بهترین راه رو انتخاب می‌کنه و اگه قطع شد خودش دوباره وصل می‌شه.</p>
+      <div class="set"><div class="t">الان<small id="lkNow">—</small></div><button class="btn primary" id="lkBleBtn">وصل شدن با بلوتوث</button></div>
+      <div class="set"><div class="t">از راه دور (اینترنت)<small id="lkNet">—</small></div><input type="checkbox" class="switch" data-flag="cloud" aria-label="اتصال از راه دور"></div>
+      <div class="set"><div class="t">کد اتصال این گوشی<small>با اولین اتصال بلوتوث خودکار گرفته می‌شه</small></div>
         <div class="row"><b class="num" id="lkCode">—</b><button class="btn" id="lkCopy">کپی</button></div></div>
-      <div class="set"><div class="t">وارد کردن کد</div>
-        <div class="row"><input id="lkInput" class="btn num" style="width:190px" placeholder="EBX1-…" autocomplete="off" aria-label="کد اتصال">
+      <div class="set"><div class="t">وارد کردن کد<small>برای گوشی دوم (مثلاً آیفون)</small></div>
+        <div class="row"><input id="lkInput" class="btn num" style="width:180px" placeholder="EBX1-…" autocomplete="off" aria-label="کد اتصال">
           <button class="btn primary" id="lkSave">ذخیره</button><button class="btn danger" id="lkForget">حذف</button></div></div>
+      <div class="set"><div class="t">حالت نمایشی<small>بدون دستگاه، با داده‌ی ساختگی</small></div><input type="checkbox" class="switch" id="demoSw" aria-label="حالت نمایشی"></div>
+    </div>
+
+    <div class="card" id="instCard">
+      <h3>نصب روی صفحه‌ی اصلی</h3>
+      <p class="note" id="instTxt"></p>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="instBtn" hidden>نصب</button></div>
     </div>
 
     <div class="card">
       <h3>اینترنت دستگاه (وای‌فای)</h3>
-      <p class="note">دستگاه از هر وای‌فایی اینترنت می‌گیره: مودم خونه، هات‌اسپات گوشی، یا مودم داخل ماشین. تا ۵ شبکه یادش می‌مونه و خودش قوی‌ترین رو انتخاب می‌کنه.</p>
+      <p class="note">دستگاه از هر وای‌فایی اینترنت می‌گیره: مودم خونه، هات‌اسپات گوشی، یا مودم داخل ماشین. تا ۵ شبکه یادش می‌مونه.</p>
       <div class="set"><div class="t">الان<small id="wifiTxt">—</small></div><button class="btn" data-cmd="portal">صفحه‌ی تنظیم روی دستگاه</button></div>
       <div id="wifiList"></div>
       <div class="set"><div class="t">شبکه‌ی جدید<small>رمز فقط از راه بلوتوث فرستاده می‌شه</small></div>
@@ -450,7 +571,6 @@ nav button[aria-current="page"]{color:var(--accent)}
       <div class="set"><div class="t">انیمیشن خوش‌آمد</div><input type="checkbox" class="switch" data-flag="welcome" aria-label="انیمیشن خوش‌آمد"></div>
       <div class="set"><div class="t">اسم روی صفحه‌ی شروع</div>
         <div class="row"><input id="wnameIn" class="btn" style="width:150px" maxlength="23" autocomplete="off" aria-label="اسم شروع"><button class="btn" id="wnameBtn">ذخیره</button></div></div>
-      <div class="set"><div class="t">سرعت بالای صفحه<small>اگه صفحه به‌هم ریخت خاموشش کن؛ بعد از روشن شدن دوباره</small></div><input type="checkbox" class="switch" data-flag="spifast" aria-label="سرعت بالای صفحه"></div>
     </div>
 
     <div class="card">
@@ -461,6 +581,7 @@ nav button[aria-current="page"]{color:var(--accent)}
 
     <div class="card">
       <h3>خودرو</h3>
+      <div class="set"><div class="t">بنزین باک<small id="fuelSetTxt">—</small></div><button class="btn" data-go="fuelset">تنظیم</button></div>
       <div class="set"><div class="t">وزن خودرو<small>برای محاسبه‌ی قدرت و گشتاور</small></div><div class="stepper" data-num="weight"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">حجم باک</div><div class="stepper" data-num="tank"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">حجم موتور</div><div class="stepper" data-num="disp"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
@@ -475,17 +596,17 @@ nav button[aria-current="page"]{color:var(--accent)}
       <div class="set"><div class="t">شمع هر</div><div class="stepper" data-num="svp"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">تسمه تایم هر</div><div class="stepper" data-num="svb"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">هشدار سرعت<small>۰ = خاموش</small></div><div class="stepper" data-num="spdal"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
-      <div class="set"><div class="t">شماره‌ی پیامک هشدار<small>SIM800L به این شماره پیامک می‌ده</small></div>
+      <div class="set"><div class="t">شماره‌ی پیامک هشدار</div>
         <div class="row"><input id="smsIn" class="btn num" style="width:150px" type="tel" placeholder="0912..." autocomplete="off" aria-label="شماره‌ی پیامک"><button class="btn" id="smsBtn">ذخیره</button></div></div>
     </div>
 
     <div class="card">
       <h3>سیستم</h3>
-      <div class="set"><div class="t">ارتباط با ماشین<small id="obdTxt">—</small></div><div class="row"><button class="btn" data-cmd="reconnect">دوباره</button><button class="btn" data-cmd="elmforget">ELM دیگه</button></div></div>
+      <div class="set"><div class="t">ارتباط با ماشین<small id="obdTxt">—</small></div><div class="row"><button class="btn" data-cmd="reconnect">دوباره</button><button class="btn" data-cmd="elmforget">جفت شدن از نو</button></div></div>
       <div class="set"><div class="t">قطعه‌ها<small id="hwTxt">—</small></div></div>
       <div class="set"><div class="t">ساعت<small>ساعت دستگاه رو با این گوشی یکی کن</small></div><button class="btn" data-cmd="clock">همگام‌سازی</button></div>
-      <div class="set"><div class="t">نرم‌افزار<small>نسخه‌ی فعلی: <span class="num" id="fwTxt">—</span></small></div><button class="btn" data-cmd="update">بررسی</button></div>
-      <div class="set"><div class="t">حالت نمایشی روی دستگاه<small>وقتی ECU وصل نیست داده‌ی ساختگی نشون می‌ده</small></div><input type="checkbox" class="switch" data-flag="demo" aria-label="حالت نمایشی دستگاه"></div>
+      <div class="set"><div class="t">نرم‌افزار دستگاه<small>نسخه‌ی فعلی: <span class="num" id="fwTxt">—</span></small></div><button class="btn" data-cmd="update">بررسی</button></div>
+      <div class="set"><div class="t">داده‌ی نمایشی روی دستگاه<small>وقتی ماشین وصل نیست داده‌ی ساختگی نشون می‌ده</small></div><input type="checkbox" class="switch" data-flag="demo" aria-label="داده‌ی نمایشی دستگاه"></div>
       <div class="set"><div class="t">راه‌اندازی دوباره</div><button class="btn" data-cmd="restart">ری‌استارت</button></div>
       <div class="set"><div class="t">خاموش کردن دستگاه</div><button class="btn danger" id="offAsk">خاموش کن</button></div>
       <div class="confirm" id="offConfirm"><span>دستگاه خاموش بشه؟ با دکمه یا روشن شدن ماشین دوباره روشن می‌شه.</span>
@@ -494,121 +615,336 @@ nav button[aria-current="page"]{color:var(--accent)}
     <div class="card about">
       <img src="logo.svg" alt="لوگوی آی‌باکس">
       <div><b style="font:700 22px var(--f-num)">i<span style="color:var(--accent)">Box</span></b>
-        <div class="note">نمایشگر هوشمند خودرو · برنامه <span class="num">0.3</span></div></div>
+        <div class="note">نمایشگر هوشمند خودرو · برنامه <span class="num">0.4</span></div></div>
     </div>
   </section>
 </main>
 
-<nav aria-label="بخش‌ها">
-  <button data-go="home"><svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/></svg>خانه</button>
-  <button data-go="car"><svg viewBox="0 0 24 24"><path d="M5 16V11l2-5h10l2 5v5z"/><circle cx="8" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><path d="M5 11h14"/></svg>خودرو</button>
+<nav class="tabs" aria-label="بخش‌ها">
+  <button data-go="rpm"><svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/></svg>گیج</button>
+  <button data-go="overview"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="2"/><rect x="14" y="4" width="7" height="7" rx="2"/><path d="M4 18h16M4 15h9"/></svg>خلاصه</button>
+  <button data-go="control"><svg viewBox="0 0 24 24"><path d="M12 3l3 4H9zM12 21l-3-4h6zM3 12l4-3v6zM21 12l-4 3V9z"/><circle cx="12" cy="12" r="2"/></svg>کنترل</button>
   <button data-go="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg>نقشه</button>
-  <button data-go="remote"><svg viewBox="0 0 24 24"><path d="M5 12a10 10 0 0 1 14 0"/><path d="M8 15a6 6 0 0 1 8 0"/><circle cx="12" cy="18" r="1.3"/></svg>از راه دور</button>
-  <button data-go="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>تنظیمات</button>
+  <button id="allTab"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>همه</button>
 </nav>
-<div class="toast" id="toast" role="status"></div>
+
+<div id="scrim"></div>
+<aside id="drawer" aria-label="همه‌ی بخش‌ها" aria-hidden="true">
+  <div class="dhead"><input id="dq" type="search" placeholder="جستجو: ولتاژ، دور موتور، نقشه…" autocomplete="off" aria-label="جستجو در بخش‌ها">
+    <button class="iconbtn" id="dClose" aria-label="بستن"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div id="dlist"></div>
+</aside>
+
+<div id="dual" aria-label="دور موتور و سرعت">
+  <svg class="gsvg" id="gDualRpm" viewBox="0 0 200 172" direction="ltr"></svg>
+  <svg class="gsvg" id="gDualSpd" viewBox="0 0 200 172" direction="ltr"></svg>
+</div>
+
+<div class="inst" id="inst" hidden><img src="icon-192.png" alt=""><div id="instMsg"></div>
+  <button class="btn primary" id="instGo" hidden>نصب</button>
+  <button class="iconbtn" id="instX" aria-label="بستن"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script>
 "use strict";
-/* ===== protocol (see PROTOCOL.md) ===== */
+/* ===== basics ===== */
 const NUS_SVC = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_RX  = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";   // phone -> device (write)
 const NUS_TX  = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";   // device -> phone (notify)
-
 const $ = id => document.getElementById(id);
 const store = { get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
                 set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
 const fa = n => String(n).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
 const fmt = (v,d=0) => (v==null || isNaN(v)) ? "--" : Number(v).toFixed(d);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
-function toast(msg, ms=2600){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove("show"), ms); }
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// پیغام کوچیک بالای صفحه که خودش می‌ره
+function toast(msg, kind="", ms=2200){
+  const t=$("toast"); t.textContent=msg; t.className="toast show "+kind;
+  clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove("show"), ms);
+}
+const vib = ms => { try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} };
 
 const CFG_DEF = { lang:"fa", gstyle:2, theme:6, rotate:0, saver:1, istyle:1, welcome:true, demo:false, bday:100, bnight:30, bauto:true,
   sound:true, vol:80, spifast:true, guard:false, cloud:true, sms:"", wname:"LEXUS", svo:10000, sva:20000, svp:30000, svb:60000, spdal:0,
-  weight:1150, tank:50, disp:1600, fcal:100 };
+  weight:1150, tank:50, disp:1600, fcal:100, fuel8:4 };
 const S = {
   mode:"demo", d:{}, dtc:[], src:{tilt:"car", comp:"car"},
   phone:{lat:null, lon:null, hdg:null, beta:null, gamma:null},
   zero: store.get("tiltZero") || { car:{p:0,r:0}, phone:{p:0,r:0} },
-  maxP:0, maxR:0, last: store.get("carLast"), trail:[], view:"home",
+  maxP:0, maxR:0, last: store.get("carLast"), trail:[], view:"", depth:0,
   cfg: Object.assign({}, CFG_DEF, store.get("cfg")||{}),
-  log: [], trip:{ km:0, sec:0, fuel:0 },
+  log: [], trip:{ km:0, sec:0, fuel:0 }, hist:{}, mm:{},
 };
 
-/* ===== routing ===== */
-const VIEWS=["home","car","car-engine","car-fuel","car-trips","car-elec","car-perf","car-diag","car-tilt","car-comp","map","remote","settings"];
-function go(v){
-  if (!VIEWS.includes(v)) v="home";
-  S.view=v;
-  const top=v.split("-")[0];
-  document.querySelectorAll("nav button").forEach(b=>{ if(b.dataset.go===top) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
-  document.querySelectorAll("main section").forEach(s=>s.classList.toggle("active", s.id==="v-"+v));
-  if (v==="map") initMap();
-  if (v==="map" || v==="car-comp") startGeo();
-  if (location.hash!=="#"+v) history.replaceState(null,"","#"+v);
-  document.querySelector("main").scrollTop=0;
-  render(true);
-}
-document.addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if (b){ e.preventDefault(); go(b.dataset.go); } });
-window.addEventListener("hashchange", ()=>{ const h=location.hash.slice(1); if (h!==S.view) go(h); });
-
-/* ===== folders (mirror of the device menu) ===== */
-const ICON = {
-  engine:'<path d="M4 10h3l2-3h6v3h3v6h-3l-2 2H8l-2-2H4z"/>',
-  fuel:'<path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M14 9h2l2 2v6a1.5 1.5 0 0 0 3 0V9l-3-3"/><path d="M7 7h5v4H7z"/>',
-  trips:'<path d="M5 19c3 0 3-6 7-6s4 6 7 6"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M12 13V4l5 3-5 3"/>',
-  elec:'<rect x="3" y="8" width="18" height="11" rx="2"/><path d="M7 8V6h3v2M14 8V6h3v2M7 13h3M15.5 11.5v3M14 13h3"/>',
-  perf:'<path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l5-6"/><path d="M7 16h.01M17 16h.01"/>',
-  diag:'<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
-  tilt:'<path d="M3 18L21 8"/><path d="M3 18h18"/><path d="M15 18a6 6 0 0 0-1-3"/>',
-  comp:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 4-4 2 2-4z"/>',
-};
-const FOLDERS = [
-  ["engine","موتور","بار، آوانس، دمای روغن، ناک"], ["fuel","سوخت","مصرف، میانگین، برد باک"],
-  ["trips","سفرها","امروز، هفته، ماه، کل"], ["elec","برق","باتری، شارژ دینام، کمینه/بیشینه"],
-  ["perf","عملکرد","۰ تا ۱۰۰، ترمز، قدرت"], ["diag","عیب‌یابی","کدهای خطا، داده‌های ECU"],
-  ["tilt","شیب‌سنج","شیب جلو/عقب و پهلو"], ["comp","قطب‌نما","جهت، ارتفاع، ماهواره"],
-];
-$("folders").innerHTML = FOLDERS.map(([k,t,s])=>`<button class="folder" data-go="car-${k}"><svg viewBox="0 0 24 24">${ICON[k]}</svg><b>${t}</b><span>${s}</span></button>`).join("");
-
-/* ===== tiles ===== */
-// key, title, unit, decimals, level(v) | text(v)
+/* ===== values: key → title, unit, decimals, level(v), text(v), gauge range ===== */
 const T = {
-  bat:  ["باتری","V",1, v=> v<11.8?"hot": v<12.4?"warn": v>14.8?"hot":"ok"],
-  clt:  ["دمای آب","°C",0, v=> v<60?"cold": v>108?"hot": v>100?"warn":"ok"],
-  oil:  ["دمای روغن","°C",0, v=> v<60?"cold": v>130?"hot": v>118?"warn":"ok"],
-  fuel: ["سوخت باک","%",0, v=> v<10?"hot": v<20?"warn":"ok"],
-  lph:  ["مصرف لحظه‌ای","L/h",1],
-  lp100:["مصرف در ۱۰۰ کیلومتر","L/100km",1],
-  avg:  ["میانگین مصرف","L/100km",1],
-  range:["برد باک","km",0, v=> v<50?"hot": v<100?"warn":"ok"],
-  fuelL:["سوخت باقی‌مانده","L",1],
-  amb:  ["دمای بیرون","°C",0, v=> v<3?"cold":"ok"],
-  load: ["بار موتور","%",0, v=> v>90?"warn":"ok"],
-  ign:  ["آوانس جرقه","°",1],
-  iat:  ["دمای هوای ورودی","°C",0, v=> v>60?"warn":"ok"],
-  boost:["بوست توربو","kPa",0],
-  cat:  ["دمای کاتالیست","°C",0, v=> v>850?"hot": v>750?"warn":"ok"],
-  knock:["پایش ناک","",null, null, v=> v ? "ناک دیده شد!" : "بدون ناک"],
-  tps:  ["دریچه گاز","%",0],
-  map:  ["فشار منیفولد","kPa",0],
-  maf:  ["جریان هوا (MAF)","g/s",1],
-  stft: ["تریم کوتاه‌مدت","%",1, v=> Math.abs(v)>15?"warn":"ok"],
-  ltft: ["تریم بلندمدت","%",1, v=> Math.abs(v)>15?"warn":"ok"],
-  o2:   ["سنسور اکسیژن","V",2],
-  ecuv: ["ولتاژ ECU","V",1],
+  rpm:  ["دور موتور","rpm",0, v=> v>6000?"hot":"ok", null, [0,7000,1000,6000,1000]],
+  spd:  ["سرعت","km/h",0, null, null, [0,220,20]],
+  bat:  ["ولتاژ باتری","V",1, v=> v<11.8?"hot": v<12.4?"warn": v>14.8?"hot":"ok", null, [10,16,1]],
+  clt:  ["دمای آب","°C",0, v=> v<60?"cold": v>108?"hot": v>100?"warn":"ok", null, [40,130,10,105]],
+  oil:  ["دمای روغن","°C",0, v=> v<60?"cold": v>130?"hot": v>118?"warn":"ok", null, [20,150,10,125]],
+  fuel: ["سطح بنزین","%",0, v=> v<10?"hot": v<20?"warn":"ok", null, [0,100,25]],
+  lph:  ["مصرف لحظه‌ای","L/h",1, null, null, [0,30,5]],
+  lp100:["مصرف در ۱۰۰ کیلومتر","L/100km",1, null, null, [0,30,5]],
+  avg:  ["میانگین مصرف","L/100km",1, null, null, [0,20,5]],
+  range:["برد باک","km",0, v=> v<50?"hot": v<100?"warn":"ok", null, [0,800,100]],
+  fuelL:["بنزین باقی‌مانده","L",1, null, null, [0,80,10]],
+  amb:  ["دمای بیرون","°C",0, v=> v<3?"cold":"ok", null, [-20,50,10]],
+  load: ["بار موتور","%",0, v=> v>90?"warn":"ok", null, [0,100,20]],
+  ign:  ["آوانس جرقه","°",1, null, null, [-10,50,10]],
+  iat:  ["دمای هوای ورودی","°C",0, v=> v>60?"warn":"ok", null, [-20,80,20,60]],
+  boost:["بوست توربو","kPa",0, null, null, [-100,150,50,120]],
+  cat:  ["دمای کاتالیست","°C",0, v=> v>850?"hot": v>750?"warn":"ok", null, [0,900,100,850]],
+  knock:["ناک","",null, null, v=> v ? "ناک!" : "بدون ناک"],
+  tps:  ["دریچه گاز","%",0, null, null, [0,100,20]],
+  map:  ["فشار منیفولد","kPa",0, null, null, [0,110,10]],
+  maf:  ["جریان هوا","g/s",1, null, null, [0,150,25]],
+  stft: ["تریم کوتاه‌مدت","%",1, v=> Math.abs(v)>15?"warn":"ok", null, [-25,25,5]],
+  ltft: ["تریم بلندمدت","%",1, v=> Math.abs(v)>15?"warn":"ok", null, [-25,25,5]],
+  o2:   ["سنسور اکسیژن","V",2, null, null, [0,1,0.2]],
+  ecuv: ["ولتاژ کامپیوتر ماشین","V",1, null, null, [10,16,1]],
   chg:  ["شارژ دینام","",null, null, v=> v ? "در حال شارژ" : "شارژ نمی‌شه"],
   vmin: ["کمترین ولتاژ امروز","V",1, v=> v<11.8?"hot": v<12.2?"warn":"ok"],
   vmax: ["بیشترین ولتاژ امروز","V",1, v=> v>14.8?"hot":"ok"],
-  hp:   ["قدرت لحظه‌ای (تخمینی)","hp",0],
-  nm:   ["گشتاور لحظه‌ای (تخمینی)","N·m",0],
+  hp:   ["قدرت لحظه‌ای (تخمینی)","hp",0, null, null, [0,200,25]],
+  nm:   ["گشتاور لحظه‌ای (تخمینی)","N·m",0, null, null, [0,300,50]],
   gear: ["دنده","",null, null, v=> String(v)],
-  rpm:  ["دور موتور","rpm",0, v=> v>6000?"hot":"ok"],
 };
+const GO_DEV = { rpm:"rpm", spd:"speed", clt:"coolant", bat:"battery" };   // صفحه‌هایی که دستگاه با «go» باز می‌کنه
+
+/* ===== drawer: همه‌ی چیزهایی که نشون می‌دیم، مستقیم ===== */
+const IC = {
+  gauge:'<path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/>',
+  speed:'<path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l-3-6"/><path d="M8 20h8"/>',
+  ov:'<rect x="3" y="4" width="7" height="7" rx="2"/><rect x="14" y="4" width="7" height="7" rx="2"/><path d="M4 18h16M4 15h9"/>',
+  lcd:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  pad:'<path d="M12 3l3 4H9zM12 21l-3-4h6zM3 12l4-3v6zM21 12l-4 3V9z"/>',
+  temp:'<path d="M10 14V5a2 2 0 1 1 4 0v9a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>',
+  bolt:'<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
+  fuel:'<path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M14 9h2l2 2v6a1.5 1.5 0 0 0 3 0V9l-3-3"/><path d="M7 7h5v4H7z"/>',
+  engine:'<path d="M4 10h3l2-3h6v3h3v6h-3l-2 2H8l-2-2H4z"/>',
+  wave:'<path d="M3 12h3l3-7 4 14 3-7h5"/>',
+  trips:'<path d="M5 19c3 0 3-6 7-6s4 6 7 6"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/><path d="M12 13V4l5 3-5 3"/>',
+  perf:'<path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l5-6"/><path d="M7 16h.01M17 16h.01"/>',
+  diag:'<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',
+  map:'<path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/>',
+  comp:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 4-4 2 2-4z"/>',
+  tilt:'<path d="M3 18L21 8"/><path d="M3 18h18"/><path d="M15 18a6 6 0 0 0-1-3"/>',
+  remote:'<path d="M5 12a10 10 0 0 1 14 0"/><path d="M8 15a6 6 0 0 1 8 0"/><circle cx="12" cy="18" r="1.3"/>',
+  set:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+};
+// [گروه، صفحه‌ی گروه یا null، [[عنوان، مسیر، آیکن، کلید مقدار]...]]
+const DRAWER = [
+  ["نمایش", null, [["دور موتور","rpm","gauge","rpm"],["سرعت","m-spd","speed","spd"],["خلاصه‌ی موتور","overview","ov"],
+    ["آینه‌ی صفحه‌ی دستگاه","mirror","lcd"],["کنترل دستگاه","control","pad"]]],
+  ["دما", null, [["دمای آب","m-clt","temp","clt"],["دمای روغن","m-oil","temp","oil"],["دمای هوای ورودی","m-iat","temp","iat"],
+    ["دمای کاتالیست","m-cat","temp","cat"],["دمای بیرون","m-amb","temp","amb"]]],
+  ["برق","car-elec", [["ولتاژ باتری","m-bat","bolt","bat"],["ولتاژ کامپیوتر ماشین","m-ecuv","bolt","ecuv"],["شارژ و نمودار ولتاژ","car-elec","wave"]]],
+  ["سوخت","car-fuel", [["مصرف لحظه‌ای","m-lph","fuel","lph"],["مصرف در ۱۰۰ کیلومتر","m-lp100","fuel","lp100"],["میانگین مصرف","m-avg","fuel","avg"],
+    ["برد باک","m-range","fuel","range"],["سطح بنزین","m-fuel","fuel","fuel"],["تنظیم بنزین باک","fuelset","fuel"]]],
+  ["موتور","car-engine", [["بار موتور","m-load","engine","load"],["آوانس جرقه","m-ign","engine","ign"],["بوست توربو","m-boost","engine","boost"],
+    ["ناک","m-knock","engine","knock"],["دنده","m-gear","engine","gear"],["قدرت","m-hp","perf","hp"],["گشتاور","m-nm","perf","nm"]]],
+  ["سفر و عملکرد", null, [["سفرها","car-trips","trips"],["شتاب، ترمز و رکوردها","car-perf","perf"]]],
+  ["عیب‌یابی","car-diag", [["کدهای خطا","car-diag","diag"],["دریچه گاز","m-tps","wave","tps"],["فشار منیفولد","m-map","wave","map"],
+    ["جریان هوا","m-maf","wave","maf"],["تریم کوتاه‌مدت","m-stft","wave","stft"],["تریم بلندمدت","m-ltft","wave","ltft"],["سنسور اکسیژن","m-o2","wave","o2"]]],
+  ["راه و جهت", null, [["نقشه و مسیریابی","map","map"],["قطب‌نما","car-comp","comp"],["شیب‌سنج","car-tilt","tilt"]]],
+  ["ماشین و دستگاه", null, [["ماشین از دور","remote","remote"],["تنظیمات","settings","set"]]],
+];
+function buildDrawer(){
+  $("dlist").innerHTML = DRAWER.map(([g,page,items])=>
+    `<div class="dgrp" data-grp><span>${g}</span>${page?`<button data-go="${page}">همه ←</button>`:""}</div>`+
+    items.map(([t,r,ic,k])=>`<button class="ditem" data-go="${r}" data-q="${t} ${g}"><svg viewBox="0 0 24 24">${IC[ic]}</svg><span>${t}</span>${k?`<span class="dv" data-dv="${k}"></span>`:""}</button>`).join("")
+  ).join("");
+}
+buildDrawer();
+function dvText(k){
+  const v=S.d[k], t=T[k]; if (v==null || !t) return "";
+  if (t[4]) return t[4](v);
+  return fmt(v, t[2]) + (t[1] ? " "+t[1] : "");
+}
+function renderDrawer(){
+  document.querySelectorAll("[data-dv]").forEach(el=>{ el.textContent = dvText(el.dataset.dv); });
+  document.querySelectorAll(".ditem").forEach(b=>{ if (b.dataset.go===S.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+}
+function openDrawer(){ renderDrawer(); $("drawer").classList.add("show"); $("drawer").setAttribute("aria-hidden","false"); $("scrim").classList.add("show"); }
+function closeDrawer(){ $("drawer").classList.remove("show"); $("drawer").setAttribute("aria-hidden","true"); $("scrim").classList.remove("show"); $("dq").value=""; filterDrawer(""); }
+function filterDrawer(q){
+  q=q.trim();
+  document.querySelectorAll(".ditem").forEach(b=>b.hidden = !!q && !b.dataset.q.includes(q));
+  document.querySelectorAll("[data-grp]").forEach(g=>{
+    let n=g.nextElementSibling, any=false; while(n && n.classList.contains("ditem")){ if(!n.hidden) any=true; n=n.nextElementSibling; }
+    g.hidden = !any;
+  });
+}
+$("menuBtn").onclick=openDrawer; $("allTab").onclick=openDrawer; $("dClose").onclick=closeDrawer; $("scrim").onclick=closeDrawer;
+$("dq").addEventListener("input", e=>filterDrawer(e.target.value));
+
+/* ===== routing: پشته‌ی صفحه‌ها، دکمه‌ی برگشت، کشیدن به راست ===== */
+const VIEWS = { rpm:"دور موتور", overview:"خلاصه‌ی موتور", control:"کنترل دستگاه", mirror:"آینه‌ی صفحه‌ی دستگاه", fuelset:"تنظیم بنزین باک",
+  map:"نقشه و مسیریابی", "car-engine":"موتور", "car-fuel":"سوخت", "car-trips":"سفرها", "car-elec":"برق", "car-perf":"عملکرد",
+  "car-diag":"عیب‌یابی", "car-tilt":"شیب‌سنج", "car-comp":"قطب‌نما", remote:"ماشین از دور", settings:"تنظیمات" };
+const TABS = ["rpm","overview","control","map"];
+const viewOk = v => !!VIEWS[v] || (v.startsWith("m-") && !!T[v.slice(2)]);
+const viewTitle = v => v.startsWith("m-") ? T[v.slice(2)][0] : VIEWS[v];
+function go(v, how="push"){
+  if (!viewOk(v)) v="rpm";
+  closeDrawer();
+  if (v===S.view) return;
+  if (how==="push" && S.view){ S.depth++; history.pushState({d:S.depth}, "", "#"+v); }
+  else history.replaceState({d:S.depth}, "", "#"+v);
+  S.view=v;
+  const sec = v.startsWith("m-") ? "metric" : v;
+  document.querySelectorAll("main section").forEach(s=>s.classList.toggle("active", s.id==="v-"+sec));
+  document.querySelectorAll("nav.tabs button[data-go]").forEach(b=>{ if (b.dataset.go===v) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  const root = v==="rpm";
+  $("backBtn").hidden = root; $("brand").hidden = !root; $("title").hidden = root; $("title").textContent = root ? "" : viewTitle(v);
+  document.body.dataset.view = v;
+  updateDual();
+  if (v==="map"){ initMap(); startGeo(); }
+  if (v==="car-comp") startGeo();
+  if (sec==="metric") setupMetric(v.slice(2));
+  if (v==="fuelset") fsInit();
+  $("main").scrollTop=0;
+  render(true);
+}
+function goBack(){
+  if (S.depth>0) history.back();
+  else go(S.view.startsWith("m-") || S.view==="fuelset" ? "rpm" : S.view.startsWith("car-") ? "rpm" : "rpm", "replace");
+}
+window.addEventListener("popstate", e=>{ S.depth = e.state?.d || 0; const h=location.hash.slice(1)||"rpm"; S.view===h || go(h, "pop"); });
+document.addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if (b){ e.preventDefault(); go(b.dataset.go); } });
+$("backBtn").onclick=goBack;
+// کشیدن انگشت به راست = برگشت (روی نقشه و دکمه‌های کنترل نه)
+(function(){
+  let sw=null;
+  const start = e=>{ if (e.touches.length!==1 || e.target.closest("#map,.pad,.k,input,select,.fuelbar,.lcd")){ sw=null; return; }
+    sw={x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now()}; };
+  const end = (e, fn)=>{ if (!sw) return; const c=e.changedTouches[0], dx=c.clientX-sw.x, dy=c.clientY-sw.y;
+    if (dx>70 && Math.abs(dy)<Math.max(50, dx*0.5) && Date.now()-sw.t<800) fn(); sw=null; };
+  $("main").addEventListener("touchstart", start, {passive:true});
+  $("main").addEventListener("touchend", e=>end(e, ()=>{ if (S.view!=="rpm") goBack(); }), {passive:true});
+  $("drawer").addEventListener("touchstart", start, {passive:true});
+  $("drawer").addEventListener("touchend", e=>end(e, closeDrawer), {passive:true});
+})();
+
+/* ===== gauges ===== */
+function arcPath(cx,cy,R,a0,a1){
+  const p=a=>[cx+R*Math.cos(a*Math.PI/180), cy+R*Math.sin(a*Math.PI/180)];
+  const [x0,y0]=p(a0),[x1,y1]=p(a1);
+  return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+}
+// گیج دایره‌ای ۲۴۰ درجه. o: min,max,step,red,div,dec,unit,label,lvl
+function Gauge(svg, o){
+  const cx=100, cy=98, R=80, A0=150, A1=390, W=o.thin?10:13;
+  const ang = v => A0 + (A1-A0)*clamp((v-o.min)/(o.max-o.min),0,1);
+  let h = `<path d="${arcPath(cx,cy,R,A0,A1)}" fill="none" stroke="var(--line)" stroke-width="${W}" stroke-linecap="round"/>`;
+  if (o.red!=null) h += `<path d="${arcPath(cx,cy,R,ang(o.red),A1)}" fill="none" stroke="var(--hot)" stroke-opacity=".35" stroke-width="${W}"/>`;
+  h += `<path class="ga" fill="none" stroke="var(--accent)" stroke-width="${W}" stroke-linecap="round"/>`;
+  h += `<g fill="var(--dim)" font-size="9" font-family="Oxanium,monospace" text-anchor="middle">`;
+  for (let v=o.min; v<=o.max+1e-9; v+=o.step){ const a=ang(v)*Math.PI/180, lab=+(v/(o.div||1)).toFixed(2);
+    h += `<text x="${(cx+(R-20)*Math.cos(a)).toFixed(1)}" y="${(cy+(R-20)*Math.sin(a)+3).toFixed(1)}">${lab}</text>`; }
+  h += `</g><circle class="gd" r="${W/2+2}" fill="var(--fg)" stroke="var(--bg)" stroke-width="2"/>`;
+  h += `<text class="gv" x="${cx}" y="${cy+12}" text-anchor="middle" font-size="${o.big||36}" font-weight="700" fill="var(--fg)" font-family="Oxanium,monospace">--</text>`;
+  h += `<text x="${cx}" y="${cy+30}" text-anchor="middle" font-size="11" fill="var(--dim)">${o.unit||""}</text>`;
+  if (o.label) h += `<text x="${cx}" y="${cy+66}" text-anchor="middle" font-size="12" fill="var(--dim)" font-family="Vazirmatn,sans-serif">${o.label}</text>`;
+  svg.innerHTML = h;
+  const ga=svg.querySelector(".ga"), gv=svg.querySelector(".gv"), gd=svg.querySelector(".gd");
+  let cur=null;
+  return { set(v){
+    if (v==null || isNaN(v)){ cur=null; ga.setAttribute("d",""); gd.setAttribute("visibility","hidden"); gv.textContent="--"; return; }
+    cur = cur==null ? v : cur + (v-cur)*0.45;                      // حرکت نرم
+    const a = ang(cur), lv = o.lvl ? o.lvl(v) : "ok";
+    const col = lv==="hot" ? "var(--hot)" : lv==="warn" ? "var(--warn)" : lv==="cold" ? "var(--cold)" : (o.red!=null && v>=o.red) ? "var(--hot)" : "var(--accent)";
+    ga.setAttribute("d", a>A0+0.5 ? arcPath(cx,cy,R,A0,a) : ""); ga.setAttribute("stroke", col);
+    gd.setAttribute("visibility","visible"); gd.setAttribute("cx",(cx+R*Math.cos(a*Math.PI/180)).toFixed(1)); gd.setAttribute("cy",(cy+R*Math.sin(a*Math.PI/180)).toFixed(1));
+    gv.textContent = fmt(v, o.dec||0); gv.setAttribute("fill", lv==="hot" ? "var(--hot)" : "var(--fg)");
+  } };
+}
+function gaugeFor(svg, k, extra){
+  const t=T[k], r=t[5];
+  return Gauge(svg, Object.assign({min:r[0], max:r[1], step:r[2], red:r[3], div:r[4], dec:t[2], unit:t[1], lvl:t[3]}, extra||{}));
+}
+const G = {
+  rpm: gaugeFor($("gRpm"), "rpm", {big:40, unit:"rpm"}),
+  ovBat: gaugeFor($("gOvBat"), "bat", {thin:true, step:2}), ovClt: gaugeFor($("gOvClt"), "clt", {thin:true, step:30}), ovOil: gaugeFor($("gOvOil"), "oil", {thin:true, step:26}),
+  dRpm: gaugeFor($("gDualRpm"), "rpm", {big:40, label:"دور موتور"}), dSpd: gaugeFor($("gDualSpd"), "spd", {big:44, label:"سرعت"}),
+};
+
+/* ===== landscape: فقط دو گیج ===== */
+const landMq = matchMedia("(orientation:landscape) and (max-height:560px)");
+function updateDual(){ document.body.classList.toggle("dualok", !["map","control"].includes(S.view)); }
+const dualOn = () => landMq.matches && document.body.classList.contains("dualok");
+landMq.addEventListener?.("change", ()=>render(true));
+
+/* ===== screens ===== */
+function setMini(el, k){
+  const v=S.d[k], t=T[k]; el.querySelector(".v").textContent = fmt(v, t[2]);
+  el.className = "mini " + (v==null ? "" : t[3] ? t[3](v) : "info");
+}
+function renderRpm(){
+  const d=S.d;
+  G.rpm.set(d.rpm);
+  $("uSpd").textContent = fmt(d.spd); $("uGear").textContent = d.gear==null ? "--" : d.gear;
+  document.querySelectorAll("#v-rpm [data-mk]").forEach(el=>setMini(el, el.dataset.mk));
+  const off = S.mode==="off" && !LK.ble && !LK.net && !LK.wifi;
+  $("connectCard").hidden = !off;
+  if (off) $("connectNote").textContent = LK.pair ? "منتظر آی‌باکس… (خودش وصل می‌شه)" : "نزدیک ماشین یه بار وصل شو؛ از اون به بعد خودش وصل می‌شه.";
+}
+function renderDual(){ G.dRpm.set(S.d.rpm); G.dSpd.set(S.d.spd); }
+function renderOverview(){
+  const d=S.d;
+  G.ovBat.set(d.bat); G.ovClt.set(d.clt); G.ovOil.set(d.oil);
+  $("ovLph").textContent = fmt(d.lph,1);
+  $("ovLphBar").style.width = d.lph==null ? "0" : clamp(d.lph/30*100,0,100)+"%";
+  $("ovLp100").textContent = d.lp100!=null ? fmt(d.lp100,1)+" L/100km" : "ماشین ایستاده";
+  const k=d.knock;
+  $("ovLamp").className = "lamp " + (k==null ? "na" : k ? "hot" : "");
+  $("ovKnock").textContent = k==null ? "ناک" : k ? "ناک دیده شد!" : "بدون ناک";
+  $("ovKnockN").textContent = d.knockN!=null ? (d.knockN ? fa(d.knockN)+" بار در این سفر" : "در این سفر ناکی نبوده") : "داده‌ای نیست";
+}
+
+/* --- یک مقدار --- */
+let MG=null, MK=null;
+function setupMetric(k){
+  MK=k; const t=T[k];
+  const gauge = !!t[5];
+  $("gMetric").hidden = !gauge; $("mText").hidden = gauge;
+  if (gauge) MG = gaugeFor($("gMetric"), k, {big:42, unit: t[1]});
+  $("mOnDev").hidden = !GO_DEV[k];
+}
+$("mOnDev").onclick=()=>cmd("go "+GO_DEV[MK], "روی دستگاه باز شد");
+function renderMetric(){
+  const k=MK, t=T[k], v=S.d[k];
+  if (t[5]) MG.set(v); else $("mText").textContent = v==null ? "--" : t[4](v);
+  const m=S.mm[k]||{};
+  $("mMin").textContent = m.lo!=null ? fmt(m.lo,t[2]??0) : "--";
+  $("mMax").textContent = m.hi!=null ? fmt(m.hi,t[2]??0) : "--";
+  $("mNow").textContent = v==null ? "--" : t[4] ? t[4](v) : fmt(v,t[2]);
+  spark($("mSpark"), S.hist[k]||[]);
+}
+function spark(svg, a){
+  if (a.length<2){ svg.innerHTML=`<text x="160" y="50" text-anchor="middle" fill="var(--dim)" font-size="11">هنوز داده‌ای جمع نشده</text>`; return; }
+  let lo=Math.min(...a), hi=Math.max(...a); if (hi-lo<1e-6){ hi+=1; lo-=1; }
+  const W=320,H=90, x=i=>4+(W-8)*i/119, y=v=>6+(H-12)*(1-(v-lo)/(hi-lo)), off=120-a.length;
+  const d=a.map((v,i)=>`${i?"L":"M"}${x(i+off).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+  svg.innerHTML=`<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="${x(119).toFixed(1)}" cy="${y(a[a.length-1]).toFixed(1)}" r="3.5" fill="var(--accent)"/>`+
+    `<text x="4" y="12" font-size="9" fill="var(--dim)" font-family="Oxanium">${+hi.toFixed(2)}</text><text x="4" y="${H-2}" font-size="9" fill="var(--dim)" font-family="Oxanium">${+lo.toFixed(2)}</text>`;
+}
+// هر ثانیه: تاریخچه و کمینه/بیشینه برای همه‌ی مقدارها
+setInterval(()=>{
+  for (const k in T){ const v=S.d[k]; if (typeof v!=="number" || isNaN(v)) continue;
+    (S.hist[k] ||= []).push(v); if (S.hist[k].length>120) S.hist[k].shift();
+    const m = S.mm[k] ||= {lo:v, hi:v}; m.lo=Math.min(m.lo,v); m.hi=Math.max(m.hi,v); }
+}, 1000);
+
+/* ===== tiles (pages per group) ===== */
 const PAGES = {
-  home:["bat","clt","fuel","lp100","range","amb"],
   engine:["load","ign","oil","iat","boost","cat","knock","rpm"],
   fuel:["lp100","lph","avg","range","fuel","fuelL"],
   elec:["bat","chg","vmin","vmax","ecuv"],
@@ -617,7 +953,8 @@ const PAGES = {
 };
 document.querySelectorAll("[data-tiles]").forEach(el=>{
   el.innerHTML = PAGES[el.dataset.tiles].map(k=>{ const [t,u]=T[k];
-    return `<div class="tile na" data-k="${k}"><div class="label">${t}</div><div dir="ltr" style="text-align:right"><span class="${u==null||T[k][4]?'vt':'v num'}">--</span>${u?`<span class="u">${u}</span>`:""}</div></div>`; }).join("");
+    const link = T[k][5] || ["knock","gear"].includes(k);
+    return `<${link?`button data-go="m-${k}"`:"div"} class="tile na" data-k="${k}"><div class="label">${t}</div><div dir="ltr" style="text-align:right"><span class="${u==null||T[k][4]?'vt':'v num'}">--</span>${u?`<span class="u">${u}</span>`:""}</div></${link?"button":"div"}>`; }).join("");
 });
 function renderTiles(page){
   document.querySelectorAll(`[data-tiles="${page}"] .tile`).forEach(el=>{
@@ -628,29 +965,125 @@ function renderTiles(page){
   });
 }
 
-/* ===== home gauge ===== */
-const CX=100, CY=88, R=72, A0=150, A1=390, RPM_MAX=7000, RED=6000;
-const pt = a => [CX + R*Math.cos(a*Math.PI/180), CY + R*Math.sin(a*Math.PI/180)];
-function arc(a0,a1){ const [x0,y0]=pt(a0),[x1,y1]=pt(a1); return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; }
-const rpmA = r => A0 + (A1-A0)*Math.min(Math.max(r,0),RPM_MAX)/RPM_MAX;
-$("rpmTrack").setAttribute("d", arc(A0,A1));
-$("rpmRed").setAttribute("d", arc(rpmA(RED),A1));
-(function(){ let h=""; for(let k=0;k<=7;k++){ const a=rpmA(k*1000)*Math.PI/180; h+=`<text x="${(CX+(R-16)*Math.cos(a)).toFixed(1)}" y="${(CY+(R-16)*Math.sin(a)+3).toFixed(1)}">${k}</text>`; } $("rpmTicks").innerHTML=h; })();
-function renderHome(){
-  const d=S.d, r=d.rpm||0;
-  $("rpmArc").setAttribute("d", r>20 ? arc(A0, rpmA(r)) : "");
-  $("rpmArc").setAttribute("stroke", r>=RED ? "var(--hot)" : "var(--accent)");
-  $("spd").textContent = fmt(d.spd);
-  $("rpmTxt").textContent = fmt(r) + " rpm";
-  renderTiles("home");
-  if (d.wx){ $("wxT").textContent=fmt(d.wx.t)+"°"; $("wxTxt").textContent=d.wx.txt; }
+/* ===== fuel level: ۸ مرحله مثل دستگاه ===== */
+const FS_FA = ["خالی","یک‌هشتم","یک‌چهارم","سه‌هشتم","نصف باک","پنج‌هشتم","سه‌چهارم","هفت‌هشتم","پر"];
+let fsSel=4;
+$("fsSegs").innerHTML = Array.from({length:8},(_,i)=>`<button class="seg8" data-i="${i}" aria-label="${FS_FA[i+1]}"></button>`).join("");
+function fsInit(){ const f = S.d.fuel8!=null && S.d.fuel8>=0 ? S.d.fuel8 : S.cfg.fuel8; fsSel = f!=null && f>=0 ? f : 4; fsRender(); }
+function fsRender(){
+  document.querySelectorAll(".seg8").forEach((b,i)=>b.classList.toggle("on", i<fsSel));
+  $("fuelbar").className = "fuelbar " + (fsSel<=1 ? "low" : fsSel<=2 ? "mid" : "");
+  $("fsTxt").textContent = FS_FA[fsSel];
+  const tank = +S.cfg.tank || 50;
+  $("fsL").textContent = `${Math.round(tank*fsSel/8)} L  (tank ${tank} L)`;
+  $("fsNow").textContent = S.d.fuelL!=null ? "تخمین فعلی دستگاه: " + fa(fmt(S.d.fuelL,1)) + " لیتر" : "";
+}
+(function(){
+  const bar=$("fsSegs");
+  const pick = x => { const r=bar.getBoundingClientRect(); const i=clamp(Math.floor((x-r.left)/r.width*8),0,7); const n=i+1; if (n!==fsSel){ fsSel=n; vib(8); fsRender(); } };
+  bar.addEventListener("pointerdown", e=>{ bar.setPointerCapture(e.pointerId); pick(e.clientX); });
+  bar.addEventListener("pointermove", e=>{ if (e.buttons) pick(e.clientX); });
+})();
+$("fsEmpty").onclick=()=>{ fsSel=0; fsRender(); };
+$("fsSave").onclick=()=>{
+  S.cfg.fuel8=fsSel; store.set("cfg",S.cfg);
+  if (isLive()){ send("set fuel "+fsSel); }
+  else { demo.fuel = fsSel*12.5; toast("بنزین باک ذخیره شد", "ok"); }
+};
+
+/* ===== control: ▲ ▼ ◀ ▶ OK منو ===== */
+let keyBusy=0;
+async function sendKey(k){
+  if (keyBusy>2) return;                       // صف پر شد: فشار بعدی رو نفرست تا عقب نیفته
+  keyBusy++; try{ await send("key "+k, true); } finally { keyBusy--; }
+}
+function keyPress(k){
+  vib(15);
+  if (isLive()) sendKey(k); else if (S.mode==="demo") demoKey(k); else toast("به دستگاه وصل نیستیم");
+}
+function bindPad(root){
+  root.querySelectorAll("[data-key]").forEach(b=>{
+    if (b.dataset.bound) return; b.dataset.bound="1";
+    let t1=null, t2=null;
+    const stop=()=>{ clearTimeout(t1); clearInterval(t2); t1=t2=null; b.classList.remove("down"); };
+    b.addEventListener("pointerdown", e=>{
+      e.preventDefault(); try{ b.setPointerCapture(e.pointerId); }catch(_){}
+      b.classList.add("down"); const k=b.dataset.key; keyPress(k);
+      if (k==="up" || k==="down") t1=setTimeout(()=>{ t2=setInterval(()=>keyPress(k), 160); }, 400);   // نگه داشتن = پشت سر هم
+    });
+    ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev, stop));
+    b.addEventListener("contextmenu", e=>e.preventDefault());
+    b.addEventListener("click", e=>e.preventDefault());
+  });
+}
+bindPad($("padBig")); bindPad($("padSmall")); bindPad($("v-control"));
+document.querySelectorAll("[data-key-solo]").forEach(b=>b.onclick=()=>keyPress(b.dataset.keySolo));
+
+/* ===== LCD mirror (کلید page از دستگاه) ===== */
+const PAGE_FA = { MAIN:"منوی اصلی", DASHBOARD:"داشبورد", ENGINE:"موتور", FUEL:"سوخت", TRIPS:"سفرها", ELECTRICAL:"برق", PERFORMANCE:"عملکرد",
+  DIAGNOSTICS:"عیب‌یابی", NAVIGATION:"مسیریابی", TOOLS:"ابزارها", FUN:"سرگرمی", SETTINGS:"تنظیمات",
+  RPM:"دور موتور", SPEED:"سرعت", "ENGINE OVERVIEW":"خلاصه‌ی موتور", "DRIVE BUDDY":"رفیق راه", WEATHER:"آب‌وهوا", RANGE:"برد باک",
+  "OUTSIDE TEMP":"دمای بیرون", "ENGINE LOAD":"بار موتور", "IGNITION ADVANCE":"آوانس جرقه", "INTAKE AIR TEMP":"دمای هوای ورودی",
+  "TURBO BOOST":"بوست توربو", "OIL TEMP":"دمای روغن", "CATALYST TEMP":"دمای کاتالیست", "KNOCK WATCH":"پایش ناک", "FUEL NOW":"مصرف لحظه‌ای",
+  "FUEL AVERAGE":"میانگین مصرف", "FUEL LEVEL":"سطح بنزین", "SET FUEL LEVEL":"تنظیم بنزین باک", BATTERY:"باتری", CHARGING:"شارژ",
+  "ECU VOLTAGE":"ولتاژ کامپیوتر ماشین", THROTTLE:"دریچه گاز", "MANIFOLD PRESSURE":"فشار منیفولد", "AIR FLOW":"جریان هوا",
+  "FUEL TRIM SHORT":"تریم کوتاه‌مدت", "FUEL TRIM LONG":"تریم بلندمدت", "O2 SENSOR":"سنسور اکسیژن", MAP:"نقشه", COMPASS:"قطب‌نما",
+  "G-METER":"شتاب‌سنج", INCLINOMETER:"شیب‌سنج", "PARK GUARD":"محافظ پارک", "TRIP SUMMARY":"خلاصه‌ی سفر", "READ CODES":"کدهای خطا",
+  "POWER & TORQUE":"قدرت و گشتاور", ACCELERATION:"شتاب", "TOP RECORDS":"رکوردها", "ROBOT EYES":"چشم‌ها", "PHONE APP":"اپ گوشی",
+  LANGUAGE:"زبان", BRIGHTNESS:"نور", VOLUME:"بلندی صدا", THEME:"تم رنگ", SOUND:"صدا" };
+const PAGE_KEY = { RPM:"rpm", SPEED:"spd", "OUTSIDE TEMP":"amb", "ENGINE LOAD":"load", "IGNITION ADVANCE":"ign", "INTAKE AIR TEMP":"iat",
+  "TURBO BOOST":"boost", "OIL TEMP":"oil", "CATALYST TEMP":"cat", "FUEL NOW":"lph", "FUEL AVERAGE":"avg", RANGE:"range", "FUEL LEVEL":"fuel",
+  BATTERY:"bat", "ECU VOLTAGE":"ecuv", THROTTLE:"tps", "MANIFOLD PRESSURE":"map", "AIR FLOW":"maf", "FUEL TRIM SHORT":"stft",
+  "FUEL TRIM LONG":"ltft", "O2 SENSOR":"o2", COOLANT:"clt" };
+const PAGE_APP = { "ENGINE OVERVIEW":"overview", "SET FUEL LEVEL":"fuelset", MAP:"map", COMPASS:"car-comp", INCLINOMETER:"car-tilt",
+  "PARK GUARD":"remote", "READ CODES":"car-diag", "TOP RECORDS":"car-perf", ACCELERATION:"car-perf", "TRIP SUMMARY":"car-trips" };
+const FOLDER_NAMES = ["DASHBOARD","ENGINE","FUEL","TRIPS","ELECTRICAL","PERFORMANCE","DIAGNOSTICS","NAVIGATION","TOOLS","FUN","SETTINGS"];
+const pageFa = p => PAGE_FA[p] || p || "--";
+let lcdKey=null, lcdG=null;
+function renderMirror(){
+  const p = S.d.page || "--";
+  $("lcdEn").textContent = p; $("lcdFa").textContent = PAGE_FA[p] || "";
+  const body=$("lcdBody"), k=PAGE_KEY[p];
+  const sig = p + "|" + (S.mode==="demo" ? demoMenu.lvl+":"+demoMenu.f+":"+demoMenu.i : "");
+  if (sig!==lcdKey){
+    lcdKey=sig; lcdG=null;
+    if (k && T[k][5]){ body.innerHTML=`<svg viewBox="0 0 200 172" direction="ltr"></svg>`; lcdG=gaugeFor(body.firstChild, k, {big:40}); }
+    else if (p==="ENGINE OVERVIEW"){ body.innerHTML=`<ul>${["bat","clt","oil","lph"].map(x=>`<li data-ov="${x}" style="display:flex;justify-content:space-between"><span>${T[x][0]}</span><b class="num"></b></li>`).join("")}</ul>`; }
+    else if (S.mode==="demo" && demoMenu.lvl<2){
+      const list = demoMenu.lvl===0 ? FOLDER_NAMES.filter(f=>DEMO_TREE[f]) : DEMO_TREE[demoFolder()];
+      const sel = demoMenu.lvl===0 ? demoMenu.f : demoMenu.i, a=Math.max(0, Math.min(sel-2, list.length-5));
+      body.innerHTML = `<ul>${list.slice(a,a+5).map((n,j)=>`<li class="${a+j===sel?"sel":""}">${pageFa(n)} <small class="num" style="opacity:.6">${n}</small></li>`).join("")}</ul>`;
+    }
+    else if (p==="MAIN" || FOLDER_NAMES.includes(p)) body.innerHTML=`<div class="big">${pageFa(p)}</div><div class="note">با ▲ ▼ بین گزینه‌ها برو، OK برای ورود</div>`;
+    else body.innerHTML=`<div class="big">${pageFa(p)}</div><div class="note">${PAGE_APP[p] ? "برای دیدن کاملش روی صفحه بزن" : "این صفحه رو روی خود دستگاه ببین"}</div>`;
+  }
+  if (lcdG) lcdG.set(S.d[k]);
+  body.querySelectorAll("[data-ov]").forEach(li=>{ const x=li.dataset.ov; li.querySelector("b").textContent = fmt(S.d[x], T[x][2]) + " " + T[x][1]; });
+}
+$("lcd").onclick=()=>{ const p=S.d.page; if (PAGE_KEY[p]) go("m-"+PAGE_KEY[p]); else if (PAGE_APP[p]) go(PAGE_APP[p]); };
+function renderControl(){ $("ctlPage").textContent = S.d.page ? pageFa(S.d.page) : (isLive() ? "…" : "--"); }
+
+/* --- منوی ساختگی برای حالت نمایشی --- */
+const DEMO_TREE = { DASHBOARD:["RPM","SPEED","ENGINE OVERVIEW","RANGE","OUTSIDE TEMP"],
+  ENGINE:["ENGINE LOAD","IGNITION ADVANCE","INTAKE AIR TEMP","OIL TEMP","CATALYST TEMP","KNOCK WATCH"],
+  FUEL:["FUEL NOW","FUEL AVERAGE","RANGE","FUEL LEVEL","SET FUEL LEVEL"], ELECTRICAL:["BATTERY","CHARGING","ECU VOLTAGE"],
+  NAVIGATION:["MAP","COMPASS","G-METER","INCLINOMETER"], SETTINGS:["LANGUAGE","BRIGHTNESS","VOLUME","THEME"] };
+const demoMenu = { lvl:2, f:0, i:0 };
+const demoFolder = () => FOLDER_NAMES.filter(f=>DEMO_TREE[f])[demoMenu.f];
+function demoPage(){ return demoMenu.lvl===0 ? "MAIN" : demoMenu.lvl===1 ? demoFolder() : DEMO_TREE[demoFolder()][demoMenu.i]; }
+function demoKey(k){
+  const m=demoMenu, nf=FOLDER_NAMES.filter(f=>DEMO_TREE[f]).length, ni=DEMO_TREE[demoFolder()].length;
+  if (k==="home"){ m.lvl=0; m.f=0; }
+  else if (k==="back"){ if (m.lvl>0) m.lvl--; }
+  else if (k==="ok"){ if (m.lvl<2){ if (m.lvl===0) m.i=0; m.lvl++; } }
+  else { const s = k==="up" ? -1 : 1;
+    if (m.lvl===0) m.f=(m.f+s+nf)%nf; else m.i=(m.i+s+ni)%ni; }
+  S.d.page = demoPage();
 }
 
 /* ===== trips & records ===== */
-const TRIPS_DEMO = [ // label, km, minutes, liters
-  ["سفر قبلی", 18.4, 41, 1.7], ["امروز", 32.9, 78, 3.0], ["۷ روز گذشته", 214, 412, 19.1],
-  ["۳۰ روز گذشته", 903, 1810, 80.6], ["کل", 12480, 25900, 1092],
-];
+const TRIPS_DEMO = [["سفر قبلی", 18.4, 41, 1.7], ["امروز", 32.9, 78, 3.0], ["۷ روز گذشته", 214, 412, 19.1],
+  ["۳۰ روز گذشته", 903, 1810, 80.6], ["کل", 12480, 25900, 1092]];
 function tripRow(lbl, km, min, L, live){
   const h=Math.floor(min/60), m=Math.round(min%60);
   const time = h ? `${fa(h)} ساعت و ${fa(m)} دقیقه` : `${fa(m)} دقیقه`;
@@ -664,15 +1097,13 @@ function renderTrips(){
 }
 const RECORDS_DEMO = [["۰ تا ۱۰۰","11.8 s","۱۲ آبان"],["ترمز ۱۰۰ تا ۰","41 m","۳ آبان"],["۴۰۲ متر","18.2 s @ 124 km/h","۱۲ آبان"],
   ["بیشترین سرعت","162 km/h","۲۸ مهر"],["بیشترین دور","6420 rpm","۱۲ آبان"],["بیشترین قدرت","96 hp","۱۲ آبان"]];
-function renderRecords(){
-  $("recRows").innerHTML = (S.d.records||RECORDS_DEMO).map(([a,b,c])=>`<tr><td>${a}</td><td class="num">${b}</td><td>${c}</td></tr>`).join("");
-}
+function renderRecords(){ $("recRows").innerHTML = (S.d.records||RECORDS_DEMO).map(([a,b,c])=>`<tr><td>${a}</td><td class="num">${b}</td><td>${c}</td></tr>`).join(""); }
 
 /* ===== battery chart ===== */
 let battHist = (function(){ const a=[]; for(let i=0;i<48;i++){ const h=i/2; const drive=(h>7.5&&h<8.5)||(h>17&&h<18.3); a.push(drive?14.1+Math.random()*0.15:12.62-h*0.004+Math.random()*0.03); } return a; })();
 function renderBattChart(){
   const W=320,H=120,pl=30,pr=8,pt=8,pb=20, lo=11.5, hi=15, a=S.d.battHist||(S.mode==="demo"?battHist:null);
-  if (!a){ $("battChart").innerHTML=`<text x="160" y="60" text-anchor="middle" fill="var(--dim)" font-size="11">این نمودار فعلاً فقط در دمو</text>`; return; }
+  if (!a){ $("battChart").innerHTML=`<text x="160" y="60" text-anchor="middle" fill="var(--dim)" font-size="11">این نمودار فعلاً فقط در حالت نمایشی</text>`; return; }
   const x=i=>pl+(W-pl-pr)*i/(a.length-1), y=v=>pt+(H-pt-pb)*(1-(v-lo)/(hi-lo));
   let s="";
   [12,13,14].forEach(v=>{ s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-4}" y="${y(v)+3}" font-size="9" text-anchor="end" fill="var(--dim)" font-family="Oxanium">${v}V</text>`; });
@@ -685,26 +1116,26 @@ function renderBattChart(){
 
 /* ===== diagnostics ===== */
 const DTC_FA = {
-  P0101:"سنسور جریان هوا (MAF): خارج از محدوده", P0113:"سنسور دمای هوای ورودی: ولتاژ بالا", P0117:"سنسور دمای آب: ولتاژ پایین",
-  P0130:"سنسور اکسیژن جلو: مدار", P0171:"مخلوط سوخت خیلی رقیق (بانک ۱)", P0172:"مخلوط سوخت خیلی غنی (بانک ۱)",
+  P0101:"سنسور جریان هوا: خارج از محدوده", P0113:"سنسور دمای هوای ورودی: ولتاژ بالا", P0117:"سنسور دمای آب: ولتاژ پایین",
+  P0130:"سنسور اکسیژن جلو: مدار", P0171:"مخلوط سوخت خیلی رقیق", P0172:"مخلوط سوخت خیلی غنی",
   P0300:"احتراق ناقص در چند سیلندر", P0301:"احتراق ناقص سیلندر ۱", P0302:"احتراق ناقص سیلندر ۲", P0303:"احتراق ناقص سیلندر ۳", P0304:"احتراق ناقص سیلندر ۴",
-  P0325:"سنسور ناک: مدار", P0335:"سنسور میل‌لنگ: مدار", P0340:"سنسور میل‌سوپاپ: مدار", P0420:"راندمان کاتالیست پایین (بانک ۱)",
+  P0325:"سنسور ناک: مدار", P0335:"سنسور میل‌لنگ: مدار", P0340:"سنسور میل‌سوپاپ: مدار", P0420:"راندمان کاتالیست پایین",
   P0443:"شیر کنیستر: مدار", P0500:"سنسور سرعت خودرو", P0505:"سیستم کنترل دور آرام", P0562:"ولتاژ سیستم پایین", P0650:"مدار چراغ چک",
 };
 function renderDtc(){
   const el=$("dtcList");
   if (!S.dtc.length){ el.innerHTML='<p class="note">کد خطایی ثبت نشده. برای گرفتن تازه‌ترین وضعیت «خواندن» رو بزن.</p>'; return; }
-  el.innerHTML = S.dtc.map(c=>`<div class="dtc"><span class="code num">${c}</span><span>${DTC_FA[c]||"کد ثبت‌شده در ECU"}</span></div>`).join("");
+  el.innerHTML = S.dtc.map(c=>`<div class="dtc"><span class="code num">${esc(c)}</span><span>${DTC_FA[c]||"کد ثبت‌شده در کامپیوتر ماشین"}</span></div>`).join("");
 }
 function renderEcu(){
-  const e = S.d.ecu || { proto:"ISO 15765-4 CAN 11/500", pids:32, vin:"NAAN01CA9KE******", obd:"EOBD" };
-  $("ecuInfo").innerHTML = [["پروتکل",e.proto],["PIDهای پشتیبانی‌شده",e.pids],["استاندارد",e.obd],["VIN",e.vin]]
-    .map(([l,v])=>`<div><div class="label">${l}</div><div class="num" style="font-weight:700;font-size:14px">${v}</div></div>`).join("");
+  const e = S.d.ecu || (S.mode==="demo" ? { car:"نمایشی", vin:"NAAN01CA9KE******", pids:32, live:true } : {});
+  $("ecuInfo").innerHTML = [["خودرو",e.car||"--"],["VIN",e.vin||"--"],["تعداد داده‌ها",e.pids!=null?fa(e.pids):"--"],["ارتباط",e.live?"وصل":"وصل نیست"]]
+    .map(([l,v])=>`<div><div class="label">${l}</div><div style="font-weight:700;font-size:14px">${esc(v)}</div></div>`).join("");
 }
-$("dtcRead").onclick=()=>{ if (isLive()) send("dtc"); else { S.dtc=["P0171","P0420"]; renderDtc(); toast("دمو: ۲ کد خطا"); } };
+$("dtcRead").onclick=()=>{ if (isLive()) send("dtc"); else { S.dtc=["P0171","P0420"]; renderDtc(); toast("نمایشی: ۲ کد خطا"); } };
 $("dtcClearAsk").onclick=()=>$("dtcConfirm").classList.add("show");
 $("dtcClearNo").onclick=()=>$("dtcConfirm").classList.remove("show");
-$("dtcClearYes").onclick=()=>{ $("dtcConfirm").classList.remove("show"); if (isLive()) send("dtcclear"); else { S.dtc=[]; renderDtc(); toast("دمو: کدها پاک شد"); } };
+$("dtcClearYes").onclick=()=>{ $("dtcConfirm").classList.remove("show"); if (isLive()) send("dtcclear"); else { S.dtc=[]; renderDtc(); toast("نمایشی: کدها پاک شد"); } };
 
 /* ===== tilt ===== */
 function tiltNow(){
@@ -715,11 +1146,10 @@ function renderTilt(){
   const t=tiltNow();
   if (!t){ $("pitchTxt").textContent="--"; $("rollTxt").textContent="--"; return; }
   S.maxP=Math.max(S.maxP,Math.abs(t.p)); S.maxR=Math.max(S.maxR,Math.abs(t.r));
-  const p=Math.max(-45,Math.min(45,t.p)), r=Math.max(-45,Math.min(45,t.r));
+  const p=clamp(t.p,-45,45), r=clamp(t.r,-45,45);
   $("carSide").setAttribute("transform", `rotate(${(-p).toFixed(1)} 110 80)`);
   $("carRear").setAttribute("transform", `rotate(${r.toFixed(1)} 110 80)`);
-  $("pitchTxt").textContent = Math.abs(t.p).toFixed(1)+"°";
-  $("rollTxt").textContent  = Math.abs(t.r).toFixed(1)+"°";
+  $("pitchTxt").textContent = Math.abs(t.p).toFixed(1)+"°"; $("rollTxt").textContent = Math.abs(t.r).toFixed(1)+"°";
   $("pitchHint").textContent = Math.abs(t.p)<1 ? "صاف" : t.p>0 ? "سربالایی" : "سرپایینی";
   $("rollHint").textContent  = Math.abs(t.r)<1 ? "صاف" : t.r>0 ? "کج به راست" : "کج به چپ";
   $("rollTxt").style.color  = Math.abs(t.r)>25 ? "var(--hot)" : Math.abs(t.r)>15 ? "var(--warn)" : "";
@@ -729,7 +1159,7 @@ function renderTilt(){
 $("tiltZero").addEventListener("click", ()=>{
   const k=S.src.tilt, raw = k==="phone" ? {p:S.phone.beta, r:S.phone.gamma} : {p:S.d.pitch, r:S.d.roll};
   if (raw.p==null){ toast("داده‌ای برای صفر کردن نیست"); return; }
-  S.zero[k]={p:raw.p, r:raw.r}; S.maxP=S.maxR=0; store.set("tiltZero", S.zero); toast("حالت فعلی صاف حساب شد");
+  S.zero[k]={p:raw.p, r:raw.r}; S.maxP=S.maxR=0; store.set("tiltZero", S.zero); toast("حالت فعلی صاف حساب شد", "ok");
 });
 
 /* ===== compass & find-car ===== */
@@ -770,7 +1200,7 @@ document.querySelectorAll(".seg button[data-src]").forEach(b=>b.addEventListener
   if (v==="phone" && !(await startOrientation())) return;
   S.src[k]=v;
   document.querySelectorAll(`.seg button[data-src="${k}"]`).forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
-  if (k==="tilt"){ S.maxP=S.maxR=0; $("tiltNote").textContent = v==="car" ? "داده از ژیروسکوپ روی دستگاه. با «صفر کردن» حالت فعلی ماشین صاف حساب می‌شه." : "گوشی رو روی پایه ثابت کن و یه بار «صفر کردن» رو بزن."; }
+  if (k==="tilt"){ S.maxP=S.maxR=0; $("tiltNote").textContent = v==="car" ? "داده از حسگر روی دستگاه. با «صفر کردن» حالت فعلی ماشین صاف حساب می‌شه." : "گوشی رو روی پایه ثابت کن و یه بار «صفر کردن» رو بزن."; }
   render(true);
 }));
 
@@ -796,24 +1226,25 @@ function startGeo(){
 }
 
 /* ===== map ===== */
-let map=null, carMk=null, meMk=null, trailLn=null, follow=true;
+let map=null, carMk=null, meMk=null, trailLn=null, follow=true, destMk=null, routeLn=null;
 function initMap(){
   if (map){ setTimeout(()=>map.invalidateSize(),50); return; }
   if (!window.L){ $("map").textContent="نقشه بارگذاری نشد (اینترنت؟)"; return; }
   const c = S.last ? [S.last.lat,S.last.lon] : [35.7, 51.39];
-  map = L.map("map").setView(c, 15);
+  map = L.map("map").setView(c, 14);
   let tileErr=0;
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19, attribution:"© OpenStreetMap"})
-    .on("tileerror", ()=>{ if (++tileErr===3) toast("نقشه‌ی زمینه باز نشد (اینترنت یا فیلتر). مسیریابی با دکمه‌های پایین کار می‌کنه.", 5000); }).addTo(map);
-  trailLn = L.polyline([], {color:"#38e1ff", weight:4, opacity:.8}).addTo(map);
+    .on("tileerror", ()=>{ if (++tileErr===3) toast("نقشه‌ی زمینه باز نشد (اینترنت؟)"); }).addTo(map);
+  trailLn = L.polyline([], {color:"#38e1ff", weight:4, opacity:.6}).addTo(map);
   map.on("dragstart", ()=>{ follow=false; });
+  map.on("click", e=>setDest(e.latlng.lat, e.latlng.lng, "نقطه‌ی انتخابی روی نقشه"));
   updateMap();
 }
 function updateMap(){
   if (!map) return;
   if (S.last){ const ll=[S.last.lat,S.last.lon];
     if (!carMk) carMk=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="carpin"></div>',iconSize:[22,22]})}).addTo(map).bindTooltip("ماشین"); else carMk.setLatLng(ll);
-    if (follow && S.view==="map") map.panTo(ll,{animate:false}); }
+    if (follow && S.view==="map" && !RT.route) map.panTo(ll,{animate:false}); }
   if (S.phone.lat!=null){ const ll=[S.phone.lat,S.phone.lon];
     if (!meMk) meMk=L.marker(ll,{icon:L.divIcon({className:"",html:'<div class="mepin"></div>',iconSize:[16,16]})}).addTo(map).bindTooltip("من"); else meMk.setLatLng(ll); }
   trailLn.setLatLngs(S.trail);
@@ -824,13 +1255,10 @@ function renderCarPos(){
   $("carPos").innerHTML = c ? `<span class="num">${c.lat.toFixed(5)}, ${c.lon.toFixed(5)}</span> · ${ago(c.t)}` : "هنوز موقعیتی ثبت نشده";
   renderFind();
 }
-function openNav(kind){
+$("walkCar").onclick=()=>{
   const c=S.last; if (!c){ toast("هنوز موقعیت ماشین ثبت نشده"); return; }
-  const ll=`${c.lat},${c.lon}`;
-  location.href = kind==="google" ? `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=walking`
-    : kind==="apple" ? `https://maps.apple.com/?daddr=${ll}&dirflg=w` : isIOS ? `https://maps.apple.com/?q=${ll}` : `geo:${ll}?q=${ll}(iBox)`;
-}
-$("navGoogle").onclick=()=>openNav("google"); $("navApple").onclick=()=>openNav("apple"); $("navGeo").onclick=()=>openNav("geo");
+  location.href = isIOS ? `https://maps.apple.com/?daddr=${c.lat},${c.lon}&dirflg=w` : `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lon}&travelmode=walking`;
+};
 $("centerCar").onclick=()=>{ follow=true; if(map&&S.last) map.setView([S.last.lat,S.last.lon],17); else toast("موقعیت ماشین نداریم"); };
 $("centerMe").onclick=()=>{ follow=false; startGeo(); if(map&&S.phone.lat!=null) map.setView([S.phone.lat,S.phone.lon],17); else toast(window.isSecureContext?"در حال گرفتن موقعیت گوشی…":"موقعیت گوشی فقط روی https"); };
 let lastSave=0;
@@ -843,15 +1271,91 @@ function onCarFix(){
   if (S.view==="map") updateMap();
 }
 
+/* ===== مسیریابی داخل اپ: مقصد → OSRM → دستگاه؛ گوگل‌مپ فقط برای صدا ===== */
+const RT = { dest:null, name:"", route:null, sentAt:0 };
+async function findPlace(){
+  const q=$("q").value.trim(); if (!q) return;
+  const res=$("qRes"); res.hidden=false; res.innerHTML='<button disabled>در حال جستجو…</button>';
+  let near=""; const c = S.last || (S.phone.lat!=null ? {lat:S.phone.lat, lon:S.phone.lon} : null);
+  if (c) near=`&viewbox=${c.lon-0.6},${c.lat+0.6},${c.lon+0.6},${c.lat-0.6}`;
+  try{
+    const a = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=fa${near}&q=${encodeURIComponent(q)}`)).json();
+    res.innerHTML = a.length ? a.map(p=>`<button data-lat="${p.lat}" data-lon="${p.lon}" data-n="${esc(p.display_name.split(",")[0])}">${esc(p.display_name.split(",").slice(0,3).join("،"))}</button>`).join("")
+      : '<button disabled>چیزی پیدا نشد</button>';
+  }catch(e){ res.innerHTML='<button disabled>جستجو کار نکرد (اینترنت گوشی؟)</button>'; }
+}
+$("qBtn").onclick=findPlace;
+$("q").addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); $("q").blur(); findPlace(); } });
+$("qRes").addEventListener("click", e=>{ const b=e.target.closest("button[data-lat]"); if (!b) return;
+  $("qRes").hidden=true; setDest(+b.dataset.lat, +b.dataset.lon, b.dataset.n); });
+function setDest(lat, lon, name){
+  RT.dest=[lat,lon]; RT.name=name; RT.route=null;
+  if (destMk) destMk.setLatLng(RT.dest); else destMk=L.marker(RT.dest,{icon:L.divIcon({className:"",html:'<div class="destpin"></div>',iconSize:[20,20],iconAnchor:[10,20]})}).addTo(map);
+  $("routeCard").hidden=false; $("rtDest").textContent=name; $("rtInfo").textContent=""; $("rtSend").disabled=true;
+  calcRoute();
+}
+async function calcRoute(){
+  const from = S.last ? [S.last.lat,S.last.lon] : S.phone.lat!=null ? [S.phone.lat,S.phone.lon] : null;
+  if (!from){ $("rtState").textContent="موقعیت ماشین یا گوشی رو نداریم؛ موقعیت گوشی رو اجازه بده."; startGeo(); return; }
+  $("rtState").textContent="در حال پیدا کردن مسیر…";
+  try{
+    const j = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${RT.dest[1]},${RT.dest[0]}?overview=full&geometries=geojson&steps=true`)).json();
+    if (!j.routes || !j.routes.length){ $("rtState").textContent="مسیری پیدا نشد"; return; }
+    RT.route=j.routes[0];
+    const c=RT.route.geometry.coordinates.map(p=>[p[1],p[0]]);
+    if (routeLn) routeLn.setLatLngs(c); else routeLn=L.polyline(c,{color:"#ff8a1e",weight:6,opacity:.9}).addTo(map);
+    map.fitBounds(routeLn.getBounds().pad(.15)); follow=false;
+    $("rtInfo").textContent = `${fa((RT.route.distance/1000).toFixed(1))} کیلومتر · ${fa(Math.round(RT.route.duration/60))} دقیقه` + (S.last ? " از محل ماشین" : " از محل گوشی");
+    $("rtSend").disabled=false;
+    if (isLive() || S.mode==="demo") sendRoute(); else $("rtState").textContent="به آی‌باکس که وصل شدی «فرستادن» رو بزن.";
+  }catch(e){ $("rtState").textContent="مسیریابی کار نکرد (اینترنت گوشی؟)"; }
+}
+// همون قالب صفحه‌ی نقشه‌ی خود دستگاه: EYEBOXNAV1 (حداکثر ۳۰۰ نقطه، ۴۰ پیچ)
+function simplify(p,tol){ if(p.length<3) return p; const k=Math.cos(p[0][0]*Math.PI/180)*111320, q=110540;
+  const d=(r,a,b)=>{ const x=(r[1]-a[1])*k,y=(r[0]-a[0])*q,X=(b[1]-a[1])*k,Y=(b[0]-a[0])*q,L2=X*X+Y*Y,t=L2?clamp((x*X+y*Y)/L2,0,1):0; return Math.hypot(x-t*X,y-t*Y); };
+  const keep=p.map(()=>false); keep[0]=keep[p.length-1]=true; const st=[[0,p.length-1]];
+  while(st.length){ const s=st.pop(); let mx=0,mi=-1; for(let i=s[0]+1;i<s[1];i++){ const dd=d(p[i],p[s[0]],p[s[1]]); if(dd>mx){mx=dd;mi=i;} } if(mx>tol){ keep[mi]=true; st.push([s[0],mi],[mi,s[1]]); } }
+  return p.filter((r,i)=>keep[i]); }
+function stepCode(s){ const t=s.maneuver.type, mo=s.maneuver.modifier||""; if(t==="arrive") return 5; if(t==="depart") return 7; if(t.includes("roundabout")||t==="rotary") return 6;
+  const c={"uturn":4,"sharp right":3,"right":2,"slight right":1,"straight":0,"slight left":-1,"left":-2,"sharp left":-3}[mo]; return c===undefined?0:c; }
+function navText(){
+  const c=RT.route.geometry.coordinates.map(p=>[p[1],p[0]]); let tol=3, s; while((s=simplify(c,tol)).length>290) tol*=1.6;
+  let t="EYEBOXNAV1\nD "+(RT.name||"مقصد").replace(/[\n|]/g," ").slice(0,24)+"\nP"; s.forEach(p=>{ t+=" "+p[0].toFixed(6)+","+p[1].toFixed(6); }); t+="\n";
+  RT.route.legs[0].steps.slice(0,40).forEach(st=>{ const l=st.maneuver.location, n=(st.name||st.ref||"").replace(/[,\n]/g," ").slice(0,24);
+    t+="S "+l[1].toFixed(6)+","+l[0].toFixed(6)+","+stepCode(st)+","+n+"\n"; });
+  return t;
+}
+async function sendRoute(){
+  if (!RT.route) return;
+  if (S.mode==="demo"){ $("rtState").textContent="✓ نمایشی: مسیر روی دستگاه باز شد"; toast("مسیر فرستاده شد","ok"); return; }
+  if (!isLive()){ toast("به دستگاه وصل نیستیم"); return; }
+  const t=navText(); $("rtState").textContent="در حال فرستادن به آی‌باکس…"; RT.sentAt=Date.now();
+  try{
+    if (LK.ble && bleRx){
+      const lines = "navb\n" + t.split("\n").filter(Boolean).map(l=>"navl "+l).join("\n") + "\nnave\n", b=enc.encode(lines);
+      for (let i=0;i<b.length;i+=180) await bleQueueRaw(b.slice(i,i+180));          // تیکه‌تیکه، خط‌ها روی دستگاه سر هم می‌شن
+    } else if (LK.wifi){
+      const r = await fetch(`http://${LK.ip}/nav`, {method:"POST", body:t}); replyMsg((await r.text())==="ok" ? "nav ok" : "nav err");
+    } else if (LK.mq && LK.netSrv && LK.pair){
+      LK.mq.publish(`eyebox/${LK.pair.tid}/nav`, await secSeal(Date.now()+"|"+t));   // رمزشده (آی‌باکس v32.3+)
+    } else throw 0;
+    setTimeout(()=>{ if (RT.sentAt && Date.now()-RT.sentAt>=9000) $("rtState").textContent="آی‌باکس جواب نداد؛ دوباره «فرستادن» رو بزن."; }, 9000);
+  }catch(e){ $("rtState").textContent="فرستادن نشد؛ دوباره امتحان کن."; }
+}
+$("rtSend").onclick=sendRoute;
+$("rtVoice").onclick=()=>{ if (!RT.dest) return; const ll=RT.dest.join(",");
+  location.href = isIOS ? `https://maps.apple.com/?daddr=${ll}&dirflg=d` : `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=driving&dir_action=navigate`; };
+$("rtClear").onclick=()=>{ RT.dest=RT.route=null; RT.sentAt=0; if (destMk){ map.removeLayer(destMk); destMk=null; } if (routeLn){ map.removeLayer(routeLn); routeLn=null; } $("routeCard").hidden=true; follow=true; };
+function routeReply(ok, why){ RT.sentAt=0; $("rtState").textContent = ok ? "✓ روی آی‌باکس باز شد. برای راهنمای صوتی دکمه‌ی گوگل‌مپ رو بزن." : "آی‌باکس مسیر رو قبول نکرد" + (why ? " ("+why+")" : ""); toast(ok ? "مسیر روی آی‌باکس باز شد" : "مسیر فرستاده نشد", ok ? "ok" : "hot"); }
+
 /* ===== remote ===== */
 function addLog(kind, msg, t=Date.now()){ S.log.unshift({kind,msg,t}); S.log=S.log.slice(0,40); if (S.view==="remote") renderLog(); }
 function renderLog(){
   $("log").innerHTML = S.log.map(e=>{ const d=new Date(e.t);
-    return `<li><span class="dot ${e.kind}"></span><span>${e.msg}</span><time class="num">${d.toLocaleDateString("fa-IR",{month:"short",day:"numeric"})} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}</time></li>`; }).join("")
+    return `<li><span class="dot ${e.kind}"></span><span>${esc(e.msg)}</span><time class="num">${d.toLocaleDateString("fa-IR",{month:"short",day:"numeric"})} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}</time></li>`; }).join("")
     || '<li class="note">رویدادی نیست.</li>';
 }
 function renderRemote(){
-  // زنده یا دمو: داده‌ی فعلی. قطع: آخرین وضعیتی که دستگاه روی اینترنت گذاشته
   const off = S.mode==="off", d = off ? (S.park||{}) : S.d, moving=(d.spd||0)>3;
   $("rState").textContent = off && !S.park ? "نامعلوم" : moving ? "در حال حرکت" : "پارک";
   $("rBat").textContent = fmt(d.bat,1)+" V";
@@ -859,33 +1363,26 @@ function renderRemote(){
   $("rDev").textContent = d.devPct!=null ? fa(d.devPct)+"٪"+(d.devExt?" ⚡":"") : "--";
   $("rSeen").textContent = off ? (d.ts ? ago(d.ts*1000) : S.last ? ago(S.last.t) : "--") : "همین الان";
   $("rHits").textContent = d.guardHits!=null ? fa(d.guardHits) : "--";
-  $("rLink").textContent = "از طریق: " + ([LK.ble&&"بلوتوث", LK.net&&"اینترنت"].filter(Boolean).join(" + ") || (S.mode==="demo" ? "دمو" : "قطع"));
+  $("rLink").textContent = linkName() || (S.mode==="demo" ? "نمایشی" : "وصل نیست");
 }
-function showBump(msg){
-  $("bumpTxt").textContent = msg; $("bumpAlert").classList.add("show"); addLog("hot", msg);
-  if (navigator.vibrate) navigator.vibrate([200,100,200]);
-}
+function showBump(msg){ toast(msg, "hot", 4000); addLog("hot", msg); vib([200,100,200]); }
 $("simBump").onclick=()=>{
-  if (S.mode!=="demo"){ toast("فقط در حالت دمو"); return; }
+  if (S.mode!=="demo"){ toast("فقط در حالت نمایشی"); return; }
   if (!S.cfg.guard){ toast("محافظ پارک خاموشه"); return; }
-  const g=(0.4+Math.random()*1.2).toFixed(1);
-  showBump(`ضربه به ماشین پارک‌شده · شدت ${fa(g)}g · ${new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}`);
+  showBump(`ضربه به ماشین پارک‌شده · ${new Date().toLocaleTimeString("fa-IR",{hour:"2-digit",minute:"2-digit"})}`);
 };
-$("bumpOk").onclick=()=>$("bumpAlert").classList.remove("show");
-$("goBtn").onclick=()=>cmd("go "+$("goSel").value, "صفحه‌ی دستگاه عوض شد");
 const CMD_TXT = { find:"دستگاه چشمک می‌زنه و بوق می‌زنه", "screen on":"نمایشگر روشن شد", "screen off":"نمایشگر خاموش شد",
-  beep:"بوق زد", data:"گزارش گرفته شد", reconnect:"اتصال دوباره به ELM", elmforget:"ELM قبلی فراموش شد؛ دنبال ELM جدید می‌گرده",
+  data:"گزارش گرفته شد", reconnect:"اتصال دوباره به ماشین", elmforget:"دنبال اتصال جدید به ماشین می‌گرده",
   gearlearn:"یادگیری دنده از نو شروع شد", portal:"صفحه‌ی تنظیم وای‌فای روی دستگاه باز شد", clock:"ساعت دستگاه با گوشی یکی شد",
   update:"آخرین نسخه نصبه", restart:"دستگاه ری‌استارت می‌شه", level:"شیب‌سنج تراز شد" };
-// فرستادن فرمان: زنده → دستگاه (جوابش از خود دستگاه میاد)؛ دمو → فقط نمایش
 function cmd(c, demoTxt){
   if (isLive()){ send(c==="clock" ? "clock "+Math.floor(Date.now()/1000) : c); return; }
   if (S.mode!=="demo"){ toast("به دستگاه وصل نیستیم"); return; }
-  toast("دمو: "+(demoTxt||CMD_TXT[c]||"انجام شد"));
+  toast("نمایشی: "+(demoTxt||CMD_TXT[c]||"انجام شد"));
 }
 document.addEventListener("click", e=>{
   const b=e.target.closest("[data-cmd]"); if (!b) return;
-  const c=b.dataset.cmd; cmd(c);
+  cmd(b.dataset.cmd);
   if (b.classList.contains("cmd")) addLog("info", b.querySelector("b").textContent);
 });
 
@@ -909,8 +1406,10 @@ function renderSettings(){
   $("themeName").textContent = (THEMES[S.cfg.theme]||[])[1] || "";
   if (document.activeElement!==$("wnameIn")) $("wnameIn").value = S.cfg.wname||"";
   if (document.activeElement!==$("smsIn")) $("smsIn").value = S.cfg.sms||"";
-  renderLinkCard();
-  $("setSync").textContent = isLive() ? "مستقیم روی دستگاه ذخیره می‌شه" : "در دمو روی همین گوشی ذخیره می‌شه";
+  const f8 = S.d.fuel8!=null && S.d.fuel8>=0 ? S.d.fuel8 : S.cfg.fuel8;
+  $("fuelSetTxt").textContent = f8!=null && f8>=0 ? "الان: "+FS_FA[f8] : "تنظیم نشده";
+  $("demoSw").checked = S.mode==="demo";
+  renderLinkCard(); renderInstall();
 }
 document.querySelectorAll(".seg[data-opt] button").forEach(b=>b.addEventListener("click",()=>setCfg(b.closest(".seg").dataset.opt, b.dataset.v)));
 document.querySelectorAll("[data-flag]").forEach(c=>c.addEventListener("change",()=>{
@@ -920,19 +1419,23 @@ document.querySelectorAll("[data-flag]").forEach(c=>c.addEventListener("change",
 document.querySelectorAll("[data-theme-i]").forEach(b=>b.addEventListener("click",()=>setCfg("theme", +b.dataset.themeI)));
 document.querySelectorAll(".stepper[data-num]").forEach(s=>{
   const k=s.dataset.num, [,min,max,step,dec]=NUMS[k], [minus,plus]=s.querySelectorAll("button");
-  const bump=dir=>setCfg(k, +Math.min(max,Math.max(min, +(S.cfg[k]??min)+dir*step)).toFixed(dec));
+  const bump=dir=>setCfg(k, +clamp(+(S.cfg[k]??min)+dir*step, min, max).toFixed(dec));
   minus.onclick=()=>bump(-1); plus.onclick=()=>bump(1);
 });
-$("wnameBtn").onclick=()=>{ const v=$("wnameIn").value.trim(); if (v) { setCfg("wname", v); toast("ذخیره شد"); } };
+$("wnameBtn").onclick=()=>{ const v=$("wnameIn").value.trim(); if (v) { setCfg("wname", v); toast("ذخیره شد","ok"); } };
 $("smsBtn").onclick=()=>{ const v=$("smsIn").value.replace(/[^\d+]/g,""); setCfg("sms", v); toast(v ? "شماره ذخیره شد" : "پیامک خاموش شد"); };
 $("offAsk").onclick=()=>$("offConfirm").classList.add("show");
 $("offNo").onclick=()=>$("offConfirm").classList.remove("show");
 $("offYes").onclick=()=>{ $("offConfirm").classList.remove("show"); cmd("power off", "دستگاه خاموش شد"); };
 document.querySelectorAll("[data-perf]").forEach(b=>b.onclick=()=>cmd("perf "+b.dataset.perf, "آماده‌ی اندازه‌گیری "+b.textContent+" · ماشین رو نگه دار"));
+$("demoSw").onchange=e=>{
+  if (LK.ble || LK.net || LK.wifi){ e.target.checked=false; toast("به دستگاه وصلیم؛ حالت نمایشی لازم نیست"); return; }
+  S.mode = e.target.checked ? "demo" : "off"; if (S.mode==="off") S.d={}; else S.d.page=demoPage();
+  store.set("demoOff", S.mode!=="demo"); updateStatus(); render(true);
+};
 
 /* ===== demo simulator ===== */
-const demo = { t:0, lat:35.7003, lon:51.3380, hdg:72, spd:0, clt:42, fuel:63, turn:0 };
-const BUDDY=["آماده‌ای؟ بزن بریم!","آروم و پیوسته، مصرف کم","موتور گرم شد، اوضاع خوبه","یادت نره کمربند","دمای بیرون خوبه، رانندگی خوش"];
+const demo = { t:0, lat:35.7003, lon:51.3380, hdg:72, spd:0, clt:42, fuel:63, turn:0, knockN:0, kUntil:0 };
 function demoTick(dt){
   const m=demo; m.t+=dt;
   const target = Math.max(0, 55 + 35*Math.sin(m.t/14) + 12*Math.sin(m.t/3.7));
@@ -945,43 +1448,44 @@ function demoTick(dt){
   const gear = m.spd<3?0: Math.min(5, Math.ceil(m.spd/24)), k=[0,118,70,48,37,30][gear];
   const rpm = Math.max(820, m.spd*k) + 30*Math.sin(m.t*7);
   const load = Math.min(95, 18 + Math.max(0,(target-m.spd))*2.5 + m.spd*0.25);
+  if (load>70 && Math.random()<dt*0.04){ m.knockN++; m.kUntil=m.t+1.5; }
   const lph = 0.7 + load*0.06, fuelL = m.fuel/100*S.cfg.tank, avg = 8.6*S.cfg.fcal/100;
-  const map = 30+load*0.65, nm = load*1.45, bat = 14.1+0.05*Math.sin(m.t);
+  const mp = 30+load*0.65, nm = load*1.45, bat = 14.1+0.05*Math.sin(m.t);
   S.trip.sec += dt; S.trip.km += m.spd*dt/3600; S.trip.fuel += lph*dt/3600;
-  S.d = { rpm, spd:m.spd, bat, clt:m.clt, oil:Math.min(104,m.clt+6), fuel:m.fuel, fuelL, lph,
+  const page = S.d.page || demoPage();
+  S.d = { rpm, spd:m.spd, bat, clt:m.clt, oil:Math.min(104,m.clt+6), fuel:m.fuel, fuelL, lph, fuel8:Math.round(m.fuel/12.5),
     lp100: m.spd>5 ? lph/m.spd*100 : null, avg, range: fuelL/avg*100, load, amb:17,
-    ign: 8+load*0.12+2*Math.sin(m.t), iat:31+3*Math.sin(m.t/20), tps: Math.min(100, load*0.7), map, boost: map-101,
+    ign: 8+load*0.12+2*Math.sin(m.t), iat:31+3*Math.sin(m.t/20), tps: Math.min(100, load*0.7), map:mp, boost: mp-101,
     cat: 380+load*4+m.spd, maf: 2.5+load*0.35, stft: 2.5*Math.sin(m.t*1.3), ltft: 3.1, o2: 0.45+0.4*Math.sin(m.t*5),
-    ecuv: bat-0.2, chg: bat>13.2, vmin:12.3, vmax:14.4, knock:0,
-    hp: Math.max(0, nm*rpm/7121), nm, gear,
+    ecuv: bat-0.2, chg: bat>13.2, vmin:12.3, vmax:14.4, knock: m.t<m.kUntil ? 1 : 0, knockN:m.knockN,
+    hp: Math.max(0, nm*rpm/7121), nm, gear: gear || "N",
     pitch: 4*Math.sin(m.t/9) + 0.3*Math.sin(m.t*3), roll: m.turn*m.spd/600 + 1.5*Math.sin(m.t/6),
     hdg: m.hdg, lat:m.lat, lon:m.lon, alt:1190+8*Math.sin(m.t/30), gspd:m.spd, sat:9, fix:1,
-    parkBat:12.6, cabin:22, wx:{t:18, txt:"آفتابی"}, devPct:84, devExt:true, guardHits:0, fw:"31.35" };
-  if (Math.floor(m.t/12)!==Math.floor((m.t-dt)/12)) $("buddy").textContent = BUDDY[Math.floor(m.t/12)%BUDDY.length];
+    devPct:84, devExt:true, guardHits:0, fw:"32.3", page };
   onCarFix();
 }
 
-/* ===== link layer: Bluetooth (nearby) + internet (MQTT, from anywhere) — EyeBox firmware v31.35+ ===== */
+/* ===== link: بلوتوث ← وای‌فای ← اینترنت، خودکار و بی‌صدا ===== */
 const BROKER_WSS = "wss://broker.emqx.io:8084/mqtt";
-const LK = { ble:false, net:false, mq:null, netSrv:false, teleMs:0, devOnline:null, pair: store.get("pair3") };
+const LK = { ble:false, wifi:false, net:false, mq:null, netSrv:false, teleMs:0, devOnline:null, pair: store.get("pair3"), ip: store.get("devIp") };
 const isLive = () => S.mode==="live";
+const linkName = () => LK.ble ? "بلوتوث" : LK.wifi ? "وای‌فای" : LK.net ? "اینترنت" : "";
 function goLive(){ if (S.mode!=="live"){ S.mode="live"; S.d={}; S.trail=[]; S.dtc=[]; renderDtc(); } updateStatus(); }
 function linkLost(){
-  if (LK.ble || LK.net) { updateStatus(); return; }
+  if (LK.ble || LK.net || LK.wifi){ updateStatus(); return; }
   if (S.mode==="live"){ S.mode="off"; if (S.last){ S.last.t=Date.now(); store.set("carLast", S.last); } }
   updateStatus();
 }
 function updateStatus(){
-  const s=$("status");
-  const via = [LK.ble&&"بلوتوث", LK.net&&"اینترنت"].filter(Boolean).join(" + ");
-  if (via){ s.className="pill on"; s.textContent = via + (S.d.demo ? " · نمایشی" : ""); }
-  else if (S.mode==="demo"){ s.className="pill demo"; s.textContent="دمو"; }
-  else { s.className="pill"; s.textContent = LK.netSrv && LK.pair ? (LK.devOnline===false ? "دستگاه آفلاین" : "منتظر دستگاه") : "قطع"; }
-  $("connectBtn").textContent = LK.ble ? "قطع بلوتوث" : "بلوتوث";
+  const s=$("status"), via=linkName();
+  if (via){ s.className="pill on"; s.textContent = "وصل · " + via; }
+  else if (S.mode==="demo"){ s.className="pill demo"; s.textContent="نمایشی"; }
+  else if (LK.pair || bleDev){ s.className="pill busy"; s.textContent = LK.devOnline===false ? "دستگاه خاموشه" : "در حال اتصال"; }
+  else { s.className="pill"; s.textContent="وصل نیست"; }
   renderLinkCard();
 }
+$("status").onclick=()=>go("settings");
 
-// داده‌ی زنده‌ی دستگاه (liveJson) → کلیدهای برنامه
 let lastHits = null;
 function mapLive(j){
   const p=j.p||{}, d={}, n=v=>v==null?null:+v;
@@ -997,7 +1501,13 @@ function mapLive(j){
   if (j.dev){ d.devBat=j.dev.bat; d.devPct=j.dev.pct; d.devExt=j.dev.ext; d.devChg=j.dev.chg; }
   d.guard=j.guard; d.guardHits=j.guardHits; d.sim=j.sim; d.ip=j.wifi; d.cloudUp=j.cloud; d.page=j.page; d.ts=j.time||Math.floor(Date.now()/1000);
   d.fw=j.fw; d.devId=j.id; d.imu=j.imu;
-  if (S.cfg.tank && d.fuel!=null){ d.fuelL=d.fuel/100*S.cfg.tank; if (S.d.avg) d.range=d.fuelL/S.d.avg*100; }
+  if (j.knock!=null){ d.knockN=j.knock; d.knock=j.knockNow?1:0; }                // v32.3
+  if (j.fuel8!=null) d.fuel8=j.fuel8;
+  if (j.fuelL!=null) d.fuelL=+j.fuelL; else if (S.cfg.tank && d.fuel!=null) d.fuelL=d.fuel/100*S.cfg.tank;
+  if (d.fuel==null && d.fuel8!=null && d.fuel8>=0) d.fuel=d.fuel8*12.5;
+  if (d.fuelL!=null && S.d.avg) d.range=d.fuelL/S.d.avg*100;
+  if (S.d.avg!=null) d.avg=S.d.avg;
+  if (j.wifi){ LK.ip=j.wifi; store.set("devIp", j.wifi); }
   if (j.guardHits!=null){ if (lastHits!=null && j.guardHits>lastHits) showBump(`ضربه به ماشین پارک‌شده (${fa(j.guardHits)} بار)`); lastHits=j.guardHits; }
   return d;
 }
@@ -1007,73 +1517,81 @@ function mapData(x){
   if (x.records) S.d.records = x.records.map(r=>[r[0], r[1], ""]);
   const tot = (x.trips||[]).find(r=>r[0]==="کل");
   if (tot && tot[1]>20) S.d.avg = tot[3]/tot[1]*100;
-  if (x.ecu) S.d.ecu = { proto:x.ecu.proto||"--", pids:x.ecu.pids, obd:x.ecu.state, vin:x.ecu.vin||"--", elm:x.ecu.elm, car:x.ecu.car };
+  if (x.ecu) S.d.ecu = { pids:x.ecu.pids, vin:x.ecu.vin||"--", car:[x.ecu.car,x.ecu.model].filter(Boolean).join(" ")||"--", live:x.ecu.live };
   if (x.dtc){ S.dtc=x.dtc; renderDtc(); }
   S.devInfo = x;
-  if (S.view==="settings") renderLinkCard();
   render(true);
 }
 function handleMsg(m){
   if (typeof m!=="object" || !m) return;
-  if (m.pair){ if (!m.pair.tid || !m.pair.k) return; LK.pair = { tid:m.pair.tid, k:m.pair.k }; store.set("pair3", LK.pair); toast("کد اتصال اینترنتی ذخیره شد"); netConnect(); renderLinkCard(); return; }
+  if (m.pair){ if (!m.pair.tid || !m.pair.k) return; const fresh = !LK.pair || LK.pair.k!==m.pair.k; LK.pair = { tid:m.pair.tid, k:m.pair.k }; store.set("pair3", LK.pair); if (fresh) netConnect(); renderLinkCard(); return; }
   if (m.cfg){ Object.assign(S.cfg, m.cfg); store.set("cfg",S.cfg); if (S.view==="settings") renderSettings(); return; }
   if (m.data){ mapData(m.data); return; }
-  if (m.dtc){ S.dtc=m.dtc; renderDtc(); toast(m.dtc.length ? `${fa(m.dtc.length)} کد خطا` : "کد خطایی نیست"); return; }
+  if (m.dtc){ S.dtc=m.dtc; renderDtc(); if (S.view==="car-diag") toast(m.dtc.length ? `${fa(m.dtc.length)} کد خطا` : "کد خطایی نیست"); return; }
   if (m.reply!=null){ replyMsg(m.reply); return; }
-  if ("rpm" in m || "kmh" in m){ Object.assign(S.d, mapLive(m)); onCarFix(); if ("demo" in m) updateStatus(); }
+  if ("rpm" in m || "kmh" in m){ const keep={trips:S.d.trips, tripNow:S.d.tripNow, records:S.d.records, ecu:S.d.ecu, avg:S.d.avg};
+    S.d = Object.assign({}, S.d, mapLive(m)); Object.assign(S.d, Object.fromEntries(Object.entries(keep).filter(([,v])=>v!=null))); onCarFix(); }
 }
 const REPLY_FA = { "ok find":"دستگاه چشمک زد و بوق زد", "ok screen on":"نمایشگر روشن شد", "ok screen off":"نمایشگر خاموش شد",
-  "ok beep":"بوق زد", "ok level":"شیب‌سنج تراز شد", "ok gear learn":"یادگیری دنده از نو شروع شد", "ok clock":"ساعت دستگاه تنظیم شد",
-  "ok reconnect":"اتصال دوباره به ELM…", "ok elm forgotten":"دنبال ELM جدید می‌گرده", "ok portal":"صفحه‌ی تنظیم وای‌فای روی دستگاه باز شد",
+  "ok level":"شیب‌سنج تراز شد", "ok gear learn":"یادگیری دنده از نو شروع شد", "ok clock":"ساعت دستگاه تنظیم شد",
+  "ok reconnect":"اتصال دوباره به ماشین…", "ok elm forgotten":"دنبال اتصال جدید به ماشین می‌گرده", "ok portal":"صفحه‌ی تنظیم وای‌فای روی دستگاه باز شد",
   "ok reading codes":"در حال خوندن کدها…", "ok clearing codes":"در حال پاک کردن کدها…", "ok wifi added":"شبکه اضافه شد؛ دستگاه وصل می‌شه",
-  "ok wifi forgotten":"شبکه حذف شد", "ok restart":"دستگاه ری‌استارت می‌شه", "ok power off":"دستگاه خاموش شد",
-  "err ecu not connected":"ماشین وصل نیست (سوئیچ رو باز کن)", "err bluetooth only":"این کار فقط از راه بلوتوث", "err no update":"آپدیتی نیست" };
+  "ok wifi forgotten":"شبکه حذف شد", "ok restart":"دستگاه ری‌استارت می‌شه", "ok power off":"دستگاه خاموش شد", "ok set fuel":"بنزین باک ذخیره شد",
+  "err ecu not connected":"ماشین وصل نیست (سوئیچ رو باز کن)", "err bluetooth only":"این کار فقط از نزدیک (بلوتوث)", "err no update":"آپدیتی نیست",
+  "err unknown setting fuel":"این کار نسخه‌ی جدیدتر آی‌باکس رو لازم داره" };
 function replyMsg(r){
-  if (/^ok (cfg|data|pair|set )/.test(r)) return;               // جواب‌های بی‌صدا
-  const t = REPLY_FA[r] || (r.startsWith("ok up to date") ? "نسخه‌ی "+r.split(" ").pop()+" آخرین نسخه‌ست" :
-            r.startsWith("ok new version") ? "نسخه‌ی جدید "+r.split(" ").pop()+" آماده‌ست" : r.startsWith("ok perf") ? "آماده‌ی اندازه‌گیری؛ ماشین رو نگه دار" :
-            r.startsWith("ok go") ? "صفحه‌ی دستگاه عوض شد" : r);
-  toast(t); if (r.startsWith("err")) addLog("warn", t);
+  r=String(r).trim();
+  if (r.startsWith("nav ")){ routeReply(r==="nav ok", r.replace(/^nav err ?/,"")); return; }
+  if (/^ok (cfg|data|pair|key|set (?!fuel))/.test(r)) return;      // جواب‌های بی‌صدا
+  if (REPLY_FA[r]){ toast(REPLY_FA[r], r.startsWith("err") ? "hot" : "ok"); if (r.startsWith("err")) addLog("warn", REPLY_FA[r]); return; }
+  if (r.startsWith("ok up to date")){ toast("نسخه‌ی "+r.split(" ").pop()+" آخرین نسخه‌ست"); return; }
+  if (r.startsWith("ok new version")){ toast("نسخه‌ی جدید "+r.split(" ").pop()+" آماده‌ست", "ok"); return; }
+  if (r.startsWith("ok perf")){ toast("آماده‌ی اندازه‌گیری؛ ماشین رو نگه دار"); return; }
+  if (r.startsWith("ok go")){ toast("روی دستگاه باز شد"); return; }
+  if (r.startsWith("err")){ toast("دستگاه این کار رو انجام نداد", "hot"); addLog("warn", "دستگاه این کار رو انجام نداد"); }
 }
 function parseLines(buf){
   let i; while((i=buf.indexOf("\n"))>=0){
     const line=buf.slice(0,i).trim(); buf=buf.slice(i+1);
-    if (line && line[0]==="{"){ try{ handleMsg(JSON.parse(line)); }catch(e){} }
+    if (!line) continue;
+    if (line[0]==="{"){ try{ handleMsg(JSON.parse(line)); }catch(e){} }
+    else if (line.startsWith("nav ")) replyMsg(line);
   }
   return buf.length>8192 ? "" : buf;
 }
-// فرستادن فرمان: بلوتوث اگه هست، وگرنه اینترنت
-async function send(c){
-  if (LK.ble && bleRx){
-    try{ await bleQueue(c); return true; }catch(e){ toast("ارسال با بلوتوث نشد"); return false; }
-  }
-  if (LK.mq && LK.netSrv && LK.pair){ netSend(c); return true; }
-  toast("به دستگاه وصل نیستیم"); return false;
+// فرستادن: بلوتوث ← وای‌فای ← اینترنت
+async function send(c, quiet){
+  if (LK.ble && bleRx){ try{ await bleQueue(c); return true; }catch(e){} }
+  if (LK.wifi){ try{ const r=await fetch(`http://${LK.ip}/cmd?c=${encodeURIComponent(c)}`); const t=(await r.text()).trim(); if (t) replyMsg(t); return true; }catch(e){} }
+  if (LK.mq && LK.netSrv && LK.pair && LK.net){ netSend(c); return true; }
+  if (!quiet) toast("به دستگاه وصل نیستیم");
+  return false;
 }
-// نوشتن‌های بلوتوث پشت سر هم (هم‌زمان دو تا نوشتن خطا می‌ده)
 let bleChain = Promise.resolve();
-function bleQueue(c){
-  bleChain = bleChain.then(()=>bleRx.writeValue(enc.encode(c+"\n"))).catch(e=>{ throw e; });
-  const p = bleChain; bleChain = bleChain.catch(()=>{}); return p;
+function bleQueueRaw(bytes){
+  const p = bleChain.then(()=>bleRx.writeValue(bytes));
+  bleChain = p.catch(()=>{}); return p;
 }
+const bleQueue = c => bleQueueRaw(enc.encode(c+"\n"));
 
-/* --- Bluetooth (Web Bluetooth, Nordic UART) --- */
-let bleDev=null, bleRx=null, bleBuf="", bleWant=false;
+/* --- بلوتوث --- */
+let bleDev=null, bleRx=null, bleBuf="", bleWant=false, bleBusy=false;
 const dec=new TextDecoder(), enc=new TextEncoder();
-async function bleConnect(){
+async function bleConnect(){                                  // بار اول: کاربر دستگاه رو انتخاب می‌کنه
   if (!navigator.bluetooth){
-    toast(isIOS ? "سافاری بلوتوث وب نداره. برنامه‌ی Bluefy رو از App Store نصب کن و این صفحه رو توش باز کن." : "این مرورگر بلوتوث وب نداره؛ با Chrome باز کن.", 6000); return; }
-  if (!window.isSecureContext){ toast("بلوتوث فقط روی آدرس https کار می‌کنه", 5000); return; }
+    toast(isIOS ? "آیفون بلوتوث وب نداره؛ کد اتصال رو از گوشی دیگه وارد کن" : "این مرورگر بلوتوث نداره؛ با Chrome باز کن", "", 4500); return; }
+  if (!window.isSecureContext){ toast("بلوتوث فقط روی آدرس https کار می‌کنه"); return; }
   try{
-    $("status").className="pill busy"; $("status").textContent="در حال اتصال";
-    bleDev = await navigator.bluetooth.requestDevice({ filters:[{namePrefix:"EyeBox"},{namePrefix:"iBox"},{services:[NUS_SVC]}], optionalServices:[NUS_SVC] });
-    bleDev.addEventListener("gattserverdisconnected", onBleLost);
-    bleWant = true;
-    await bleOpen();
-  }catch(e){
-    LK.ble=false; updateStatus();
-    if (e.name!=="NotFoundError") toast("اتصال نشد: "+e.message, 4000);
-  }
+    const d = await navigator.bluetooth.requestDevice({ filters:[{namePrefix:"EyeBox"},{namePrefix:"iBox"},{services:[NUS_SVC]}], optionalServices:[NUS_SVC] });
+    useBleDev(d); bleLoop();
+  }catch(e){ if (e.name!=="NotFoundError") toast("وصل نشد؛ دوباره امتحان کن"); }
+}
+function useBleDev(d){
+  if (bleDev===d) return;
+  bleDev=d; bleWant=true; store.set("bleKnown", true);
+  d.addEventListener("gattserverdisconnected", onBleLost);
+  if (S.mode==="demo"){ S.mode="off"; S.d={}; }
+  updateStatus();
 }
 async function bleOpen(){
   const svc = await (await bleDev.gatt.connect()).getPrimaryService(NUS_SVC);
@@ -1083,23 +1601,46 @@ async function bleOpen(){
   await tx.startNotifications();
   LK.ble=true; goLive();
   await send("pair"); await send("cfg"); await send("data");
-  addLog("ok","با بلوتوث به "+bleDev.name+" وصل شد"); toast("به آی‌باکس وصل شد");
+  addLog("ok","با بلوتوث وصل شد");
 }
-// قطع شد: خودش چند بار دوباره وصل می‌شه (بدون انتخاب دوباره‌ی دستگاه)
-async function onBleLost(){
-  bleRx=null; LK.ble=false; linkLost();
-  if (!bleWant) { addLog("info","بلوتوث قطع شد"); return; }
-  toast("بلوتوث قطع شد؛ دوباره وصل می‌شم…", 3000);
-  for (let i=0; i<6 && bleWant && !LK.ble; i++){
-    await new Promise(r=>setTimeout(r, 1500 + i*1500));
-    try{ await bleOpen(); return; }catch(e){}
+// تا وقتی دستگاه رو می‌خوایم، بی‌صدا تلاش می‌کنیم (۲ ثانیه، بعد کم‌کم تا ۲۰ ثانیه)
+async function bleLoop(){
+  if (bleBusy) return; bleBusy=true;
+  for (let i=0; bleWant && !LK.ble; i++){
+    try{ await bleOpen(); break; }catch(e){ bleRx=null; }
+    if (i===0 && bleDev.watchAdvertisements){ try{ await bleDev.watchAdvertisements(); }catch(e){} }
+    await sleep(Math.min(20000, 2000 + i*2000));
   }
-  if (!LK.ble){ addLog("info","بلوتوث قطع شد"); toast(LK.net ? "از راه اینترنت ادامه می‌دیم" : "دستگاه دور شد؛ دکمه‌ی بلوتوث رو دوباره بزن", 4000); }
+  bleBusy=false;
+}
+function onBleLost(){ bleRx=null; LK.ble=false; linkLost(); if (bleWant) bleLoop(); }
+// دفعه‌های بعد: دستگاهی که قبلاً اجازه داده شده رو خودش پیدا می‌کنه
+async function bleAuto(){
+  if (!navigator.bluetooth?.getDevices) return;
+  try{
+    const ds = await navigator.bluetooth.getDevices();
+    const d = ds.find(x=>/^(EyeBox|iBox)/i.test(x.name||"")) || ds[0];
+    if (!d) return;
+    useBleDev(d);
+    d.addEventListener("advertisementreceived", ()=>{ if (!LK.ble) bleLoop(); });
+    bleLoop();
+  }catch(e){}
 }
 function bleDisconnect(){ bleWant=false; bleDev?.gatt?.disconnect(); }
 
-/* --- Internet (MQTT over secure WebSocket), end-to-end encrypted (AES-256-GCM) --- */
-// کلید فقط از راه بلوتوث از خود دستگاه گرفته می‌شه؛ سرور و بقیه فقط بایت‌های رمزشده می‌بینن
+/* --- وای‌فای (فقط وقتی برنامه از روی http باز شده؛ مرورگر از صفحه‌ی https به http دستگاه اجازه نمی‌ده) --- */
+async function wifiProbe(){
+  if (location.protocol!=="http:" || !LK.ip || LK.ble) { if (LK.wifi && LK.ble){ LK.wifi=false; updateStatus(); } return; }
+  try{
+    const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(), 1500);
+    const j = await (await fetch(`http://${LK.ip}/data`, {signal:ctl.signal})).json(); clearTimeout(to);
+    if (!LK.wifi){ LK.wifi=true; goLive(); send("cfg"); send("data"); addLog("ok","با وای‌فای وصل شد"); }
+    handleMsg(j);
+  }catch(e){ if (LK.wifi){ LK.wifi=false; linkLost(); } }
+}
+setInterval(wifiProbe, 1000);
+
+/* --- اینترنت: رمزشده سر تا ته (AES-256-GCM)، کلید فقط از بلوتوث --- */
 const hexBytes = h => new Uint8Array(h.match(/../g).map(x=>parseInt(x,16)));
 let secKey=null, secKeyHex=null;
 async function secKeyGet(){
@@ -1117,81 +1658,113 @@ async function secOpen(bytes){
   const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:b.slice(0,12), tagLength:128}, await secKeyGet(), b.slice(12));
   return new TextDecoder().decode(pt);
 }
+let lastStamp=0;
 async function netSend(c){
-  const base=`eyebox/${LK.pair.tid}/`;
-  LK.mq.publish(base+"cmd", await secSeal(Date.now()+"|"+c));   // زمان: پیام ضبط‌شده رو نمی‌شه دوباره فرستاد
+  const ms = lastStamp = Math.max(Date.now(), lastStamp+1);   // هر پیام یه زمان یکتا (دستگاه تکراری‌ها رو رد می‌کنه)
+  LK.mq.publish(`eyebox/${LK.pair.tid}/cmd`, await secSeal(ms+"|"+c));
 }
 const pairCode = p => `EBX1-${p.tid}-${p.k}`;
 function netConnect(){
   if (!LK.pair || !LK.pair.tid || !LK.pair.k || !window.mqtt || !crypto.subtle) return;
   if (LK.mq){ try{ LK.mq.end(true); }catch(e){} }
   const base=`eyebox/${LK.pair.tid}/`;
-  const c = mqtt.connect(BROKER_WSS, { clientId:"eyebox-app-"+Math.random().toString(16).slice(2,10), clean:true, reconnectPeriod:5000, connectTimeout:10000 });
+  const c = mqtt.connect(BROKER_WSS, { clientId:"ibox-app-"+Math.random().toString(16).slice(2,10), clean:true, reconnectPeriod:4000, connectTimeout:10000 });
   LK.mq=c;
   c.on("connect", ()=>{ LK.netSrv=true; c.subscribe([base+"live", base+"x", base+"status", base+"alert"]); updateStatus(); });
   c.on("close", ()=>{ LK.netSrv=false; if (LK.net){ LK.net=false; linkLost(); } else updateStatus(); });
+  c.on("error", ()=>{});
   c.on("message", async (topic, payload)=>{
+    if (!LK.pair || !topic.startsWith(base)) return;
     const sub=topic.slice(base.length);
     if (sub==="status"){ LK.devOnline = new TextDecoder().decode(payload)==="online"; updateStatus(); return; }
-    let txt; try{ txt = await secOpen(payload); }catch(e){ return; }   // رمزش با کلید ما باز نشد: نادیده
-    if (topic.slice(0,base.length)!==`eyebox/${LK.pair?.tid}/`) return;
-    if (sub==="alert"){ try{ const a=JSON.parse(txt); const msg=a.fa||a.en; addLog(a.lvl>=2?"hot":a.lvl===1?"warn":"info", msg); toast(msg, 4000);
-      if (a.lvl>=2 && navigator.vibrate) navigator.vibrate([200,100,200]); }catch(e){} return; }
+    let txt; try{ txt = await secOpen(payload); }catch(e){ return; }   // با کلید ما باز نشد: نادیده
+    if (sub==="alert"){ try{ const a=JSON.parse(txt); const msg=a.fa||a.en; addLog(a.lvl>=2?"hot":a.lvl===1?"warn":"info", msg); toast(msg, a.lvl>=2?"hot":"", 3500);
+      if (a.lvl>=2) vib([200,100,200]); }catch(e){} return; }
     if (sub==="live"){
       LK.teleMs=Date.now(); LK.devOnline=true;
-      try{ const j=JSON.parse(txt); S.park=mapLive(j); }catch(e){}
-      if (!LK.net){ LK.net=true; goLive(); addLog("ok","از راه اینترنت به دستگاه وصل شد"); send("cfg"); send("data"); }
+      try{ S.park=mapLive(JSON.parse(txt)); }catch(e){}
+      if (!LK.net){ LK.net=true; goLive(); addLog("ok","از راه اینترنت وصل شد"); send("cfg",true); send("data",true); }
     }
-    if (sub==="live" || sub==="x"){ if (LK.ble && sub==="live") return; try{ handleMsg(JSON.parse(txt)); }catch(e){} }
+    if (sub==="live" && (LK.ble || LK.wifi)) return;                // نزدیکیم: داده‌ی زنده از راه نزدیک
+    try{ handleMsg(JSON.parse(txt)); }catch(e){}
   });
 }
-// اگه ۷ ثانیه از اینترنت داده نیومد، یعنی دستگاه آفلاینه
-setInterval(()=>{ if (LK.net && Date.now()-LK.teleMs>7000){ LK.net=false; addLog("info","اتصال اینترنتی دستگاه قطع شد"); linkLost(); } }, 2000);
+setInterval(()=>{ if (LK.net && Date.now()-LK.teleMs>8000){ LK.net=false; linkLost(); } }, 2000);
+// برگشتن به برنامه (از پس‌زمینه): همه‌چیز رو بی‌صدا تازه کن
+document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible"){
+  if (bleWant && !LK.ble) bleLoop();
+  if (LK.pair && LK.mq && !LK.netSrv){ try{ LK.mq.reconnect(); }catch(e){} }
+}});
 
 function renderLinkCard(){
   if (!$("lkCode")) return;
-  const p=LK.pair;
-  $("lkBle").textContent = LK.ble ? "وصل به "+(bleDev?.name||"آی‌باکس") : "وصل نیست";
-  $("lkCode").textContent = p ? `EBX1-${p.tid}-…` : "هنوز نداریم (یه بار با بلوتوث وصل شو)";
-  $("lkNet").textContent = !p ? "کد اتصال لازمه" : !LK.netSrv ? "در حال وصل شدن به سرور…" : LK.net ? "دستگاه آنلاینه، داده زنده می‌رسه" :
-    LK.devOnline===false ? "دستگاه آفلاینه" + (S.park?.ts ? " · آخرین بار "+ago(S.park.ts*1000) : "") : "منتظر دستگاه…";
+  const p=LK.pair, via=linkName();
+  $("lkNow").textContent = via ? "وصل از راه "+via : S.mode==="demo" ? "حالت نمایشی" : (LK.pair||bleDev) ? "در حال اتصال…" : "وصل نیست";
+  $("lkBleBtn").textContent = LK.ble ? "قطع بلوتوث" : "وصل شدن با بلوتوث";
+  $("lkCode").textContent = p ? `EBX1-${p.tid.slice(0,6)}…` : "هنوز نداریم";
+  $("lkNet").textContent = !p ? "یه بار با بلوتوث وصل شو تا کدش گرفته بشه" : LK.net ? "فعاله" :
+    LK.devOnline===false ? "دستگاه آفلاینه" + (S.park?.ts ? " · آخرین بار "+ago(S.park.ts*1000) : "") : "آماده";
   const x=S.devInfo, d=S.d;
-  $("obdTxt").textContent = x?.ecu ? `${x.ecu.elm||"ELM"} · ${x.ecu.state}${x.ecu.pids?" · "+fa(x.ecu.pids)+" PID":""}` : (S.mode==="demo" ? "ELM327 (OBDBLE) · CONNECTED · ۳۲ PID" : "—");
-  $("wifiTxt").textContent = x ? (x.wifiNow ? `وصل به ${x.wifiNow}${d.ip?" · "+d.ip:""}` : "به وای‌فای وصل نیست") : (S.mode==="demo" ? "وصل به Home-WiFi" : "—");
+  $("obdTxt").textContent = x?.ecu ? (x.ecu.live ? "به ماشین وصله" : "به ماشین وصل نیست") + (x.ecu.pids ? " · "+fa(x.ecu.pids)+" داده" : "") : (S.mode==="demo" ? "به ماشین وصله · ۳۲ داده" : "—");
+  $("wifiTxt").textContent = x ? (x.wifiNow ? `وصل به ${x.wifiNow}` : "به وای‌فای وصل نیست") : (S.mode==="demo" ? "وصل به Home-WiFi" : "—");
   $("fwTxt").textContent = d.fw ? "v"+d.fw : "—";
-  $("hwTxt").textContent = x?.hw ? [["MPU-6050",x.hw.mpu],["GPS",x.hw.gps],["SIM800L",x.hw.sim],["ساعت",x.hw.rtc]].map(([n,o])=>n+(o?" ✓":" ✗")).join(" · ") : "—";
-  $("wifiList").innerHTML = (x?.wifiList||[]).map(s=>`<div class="set"><div class="t">${s.replace(/</g,"&lt;")}${s===x.wifiNow?" <small>وصل</small>":""}</div><button class="btn danger" data-forget="${encodeURIComponent(s)}">حذف</button></div>`).join("");
+  $("hwTxt").textContent = x?.hw ? [["حسگر حرکت",x.hw.mpu],["موقعیت‌یاب",x.hw.gps],["سیم‌کارت",x.hw.sim],["ساعت",x.hw.rtc]].map(([n,o])=>n+(o?" ✓":" ✗")).join(" · ") : "—";
+  $("wifiList").innerHTML = (x?.wifiList||[]).map(s=>`<div class="set"><div class="t">${esc(s)}${s===x.wifiNow?" <small>وصل</small>":""}</div><button class="btn danger" data-forget="${encodeURIComponent(s)}">حذف</button></div>`).join("");
 }
 document.addEventListener("click", e=>{ const b=e.target.closest("[data-forget]"); if (b) cmd("wifi forget "+decodeURIComponent(b.dataset.forget), "شبکه حذف شد"); });
 $("lkBleBtn").onclick=()=>LK.ble ? bleDisconnect() : bleConnect();
+$("connectBtn").onclick=()=>{ if (navigator.bluetooth) bleConnect(); else go("settings"); };
 $("lkSave").onclick=()=>{
   const v=$("lkInput").value.trim().replace(/\s/g,"").toLowerCase(), m=v.match(/^ebx1-([0-9a-f]{16})-([0-9a-f]{64})$/);
-  if (!m){ toast("کد باید با EBX1- شروع بشه (از گوشی‌ای که با بلوتوث وصل شده کپی کن)", 4500); return; }
-  LK.pair={tid:m[1], k:m[2]}; store.set("pair3",LK.pair); $("lkInput").value=""; netConnect(); renderLinkCard(); toast("کد ذخیره شد");
+  if (!m){ toast("کد باید با EBX1- شروع بشه", "hot"); return; }
+  LK.pair={tid:m[1], k:m[2]}; store.set("pair3",LK.pair); $("lkInput").value="";
+  if (S.mode==="demo"){ S.mode="off"; S.d={}; }
+  netConnect(); updateStatus(); toast("کد ذخیره شد","ok");
 };
 $("lkForget").onclick=()=>{ LK.pair=null; store.set("pair3",null); if (LK.mq) LK.mq.end(true); LK.mq=null; LK.netSrv=LK.net=false; linkLost(); };
-$("lkCopy").onclick=async()=>{ if (!LK.pair) return; try{ await navigator.clipboard.writeText(pairCode(LK.pair)); toast("کد کامل کپی شد؛ مثل رمز ازش نگه‌داری کن"); }catch(e){ toast("کپی نشد"); } };
+$("lkCopy").onclick=async()=>{ if (!LK.pair) return; try{ await navigator.clipboard.writeText(pairCode(LK.pair)); toast("کد کپی شد؛ مثل رمز ازش نگه‌داری کن"); }catch(e){ toast("کپی نشد"); } };
 $("wifiSend").onclick=()=>{
   const ss=$("wifiSsid").value.trim(), pw=$("wifiPass").value;
   if (!ss){ toast("اسم شبکه رو بنویس"); return; }
-  if (!LK.ble){ toast("رمز وای‌فای فقط از راه بلوتوث فرستاده می‌شه؛ اول با بلوتوث وصل شو", 4500); return; }
+  if (!LK.ble){ toast("رمز وای‌فای فقط از نزدیک (بلوتوث) فرستاده می‌شه"); return; }
   send(`wifi add ${ss}\t${pw}`); $("wifiPass").value="";
 };
 
-$("connectBtn").addEventListener("click", ()=>{ if (LK.ble){ bleDisconnect(); return; } bleConnect(); });
-$("status").addEventListener("click", ()=>{
-  if (LK.ble || LK.net) return;
-  if (S.mode==="off"){ S.mode="demo"; toast("حالت دمو روشن شد"); }
-  else { S.mode="off"; S.d={}; toast("حالت دمو خاموش شد"); }
-  updateStatus(); render(true);
-});
-if (LK.pair){ S.mode="off"; S.d={}; }        // جفت شده: به جای دمو، منتظر داده‌ی واقعی
-window.addEventListener("load", ()=>{ netConnect(); updateStatus(); });
+/* ===== نصب روی صفحه‌ی اصلی ===== */
+const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
+let bip=null;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); bip=e; renderInstall(); });
+window.addEventListener("appinstalled", ()=>{ bip=null; $("inst").hidden=true; renderInstall(); });
+function installText(){
+  if (standalone()) return "نصب شده؛ از روی صفحه‌ی اصلی گوشی بازش کن.";
+  if (isIOS) return "در Safari دکمه‌ی اشتراک (مربع با فلش رو به بالا) رو بزن، بعد «Add to Home Screen». از اون به بعد تمام‌صفحه باز می‌شه.";
+  if (bip) return "آی‌باکس رو مثل یه برنامه‌ی واقعی نصب کن: تمام‌صفحه، با آیکن خودش.";
+  return "از منوی ⋮ مرورگر «Add to Home screen» یا «Install app» رو بزن.";
+}
+function renderInstall(){
+  $("instTxt").textContent = installText(); $("instBtn").hidden = !bip || standalone();
+  $("instCard").hidden = standalone();
+}
+async function doInstall(){ if (!bip) return; bip.prompt(); try{ await bip.userChoice; }catch(e){} bip=null; $("inst").hidden=true; renderInstall(); }
+$("instBtn").onclick=doInstall; $("instGo").onclick=doInstall;
+$("instX").onclick=()=>{ $("inst").hidden=true; store.set("instHide", Date.now()); };
+setTimeout(()=>{
+  if (standalone() || Date.now()-(store.get("instHide")||0) < 3*864e5) return;
+  $("instMsg").textContent = isIOS ? "برای تمام‌صفحه: اشتراک ⬆ ← «Add to Home Screen»" : bip ? "آی‌باکس رو روی گوشی نصب کن" : "از منوی ⋮ «Add to Home screen» رو بزن";
+  $("instGo").hidden = !bip; $("inst").hidden=false;
+}, 2500);
+if ("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 /* ===== loop ===== */
 function render(full){
   const v=S.view;
-  if (v==="home") renderHome();
+  if (dualOn()) { renderDual(); return; }
+  if (v==="rpm") renderRpm();
+  else if (v==="overview") renderOverview();
+  else if (v==="control") renderControl();
+  else if (v==="mirror") renderMirror();
+  else if (v.startsWith("m-")) renderMetric();
+  else if (v==="fuelset"){ if (full) fsRender(); }
   else if (v==="car-engine") renderTiles("engine");
   else if (v==="car-fuel") renderTiles("fuel");
   else if (v==="car-elec"){ renderTiles("elec"); if (full) renderBattChart(); }
@@ -1203,13 +1776,18 @@ function render(full){
   else if (v==="map") renderCarPos();
   else if (v==="remote"){ renderRemote(); if (full) renderLog(); }
   else if (v==="settings" && full) renderSettings();
+  if ($("drawer").classList.contains("show") && Math.random()<0.3) renderDrawer();
 }
 let prev=performance.now();
 setInterval(()=>{ const now=performance.now(), dt=Math.min(0.5,(now-prev)/1000); prev=now; if (S.mode==="demo") demoTick(dt); render(false); }, 100);
 setInterval(()=>{ if (S.view==="map") updateMap(); }, 1000);
 
+// شروع: جفت‌شده یا قبلاً بلوتوث داشتیم → منتظر داده‌ی واقعی؛ وگرنه نمایشی
+if (LK.pair || store.get("bleKnown") || store.get("demoOff")){ S.mode="off"; S.d={}; } else S.d.page = demoPage();
 renderSettings();
-go(location.hash.slice(1) || "home");
+history.replaceState({d:0}, "", location.hash || "#rpm");
+go((location.hash.slice(1)) || "rpm", "init");
+window.addEventListener("load", ()=>{ netConnect(); bleAuto(); updateStatus(); });
 </script>
 </body>
 </html>
