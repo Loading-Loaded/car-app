@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>آی‌باکس</title>
 <meta name="description" content="نمایش و کنترل آی‌باکس از روی گوشی">
-<meta name="theme-color" content="#0a0f17">
+<meta name="theme-color" content="#080c10">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="iBox">
@@ -17,12 +17,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&family=Oxanium:wght@500;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
 <style>
-/* Layout: phone app. Header (back · title · link · all-sections), one view at a time, five-tab bar.
-   Colors from the iBox logo: cyan glow + orange stripe on deep navy. Dark-first (night driving). */
+/* Layout: phone app, same folders as the device (v32.23). Header (back · title · link · settings), folder chips, one view, five-tab bar.
+   Colors = the device's default EYEBOX theme (pastel on deep navy); each folder keeps its device colour. Dark-first (night driving). */
 :root{
-  --bg:#0a0f17; --panel:#121925; --panel2:#18212f; --line:#222c3b; --fg:#e6edf6; --dim:#8191a7;
-  --accent:#38e1ff; --on-accent:#04202a; --accent2:#ff8a1e;
-  --ok:#4cc38a; --warn:#f2c14e; --hot:#ef5b5b; --cold:#7b9cff;
+  --bg:#080c10; --panel:#0f161e; --panel2:#16202b; --line:#1f2b38; --fg:#e8f0f8; --dim:#8ca0b4;
+  --accent:#4adaff; --on-accent:#03222c; --accent2:#ffb96b;
+  --ok:#7bf3ce; --warn:#ffe27b; --hot:#ff6a8c; --cold:#9cb6ff;
   --f-text:"Vazirmatn",Tahoma,system-ui,sans-serif; --f-num:"Oxanium","Vazirmatn",ui-monospace,monospace;
   color-scheme:dark;
 }
@@ -211,6 +211,33 @@ tr.live td:first-child::after{content:" ●";color:var(--ok);font-size:10px}
 .about{display:flex;gap:14px;align-items:center}
 .about img{width:110px;height:auto}
 
+/* dashboard pages: swipe left/right like the device's DASHBOARD folder */
+.pager{display:flex;align-items:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin-inline:-16px;overscroll-behavior-x:contain}
+.pager::-webkit-scrollbar{display:none}
+.pg{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;padding-inline:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.pgname{text-align:center;font-size:14px;color:var(--dim);margin-bottom:-8px}
+.dots{display:flex;justify-content:center;gap:6px;padding:2px 0}
+.dots button{width:8px;height:8px;border-radius:4px;border:0;padding:0;background:var(--line);transition:width .2s}
+.dots button[aria-current="true"]{width:22px;background:var(--accent)}
+/* menu: device folders */
+.fgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media (min-width:600px){.fgrid{grid-template-columns:repeat(4,1fr)}}
+.ftile{--fc:var(--accent);border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:16px 14px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:right;min-height:118px}
+.ftile:active{background:var(--panel2)}
+.ftile svg{width:30px;height:30px;stroke:var(--fc);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ftile b{font-size:17px}
+.ftile small{font-size:12px;color:var(--dim);line-height:1.4}
+.ftile .fv{font:700 15px var(--f-num);color:var(--fc);direction:ltr;margin-top:auto}
+/* chips: the items of the open folder */
+#chips{--fc:var(--accent);display:flex;gap:8px;overflow-x:auto;padding-block:8px;border-bottom:1px solid var(--line);scrollbar-width:none}
+#chips::-webkit-scrollbar{display:none}
+#chips button{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:6px 14px;font-size:14px;color:var(--dim)}
+#chips button[aria-current="page"]{background:var(--fc);border-color:var(--fc);color:#0b1016;font-weight:700}
+/* all data */
+.agrp{margin:10px 0 0;font-size:15px;font-weight:700}
+#allList{display:flex;flex-direction:column;gap:8px}
+#allList .tiles{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+
 /* bottom tabs */
 nav.tabs{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--panel);
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
@@ -265,42 +292,78 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
   <div class="brand" id="brand"><img src="logo.svg" alt=""><b>i<span>Box</span></b></div>
   <h1 id="title" hidden></h1>
   <button id="status" class="pill demo" aria-label="وضعیت اتصال">نمایشی</button>
-  <button id="menuBtn" class="iconbtn" aria-label="همه‌ی بخش‌ها"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <button id="menuBtn" class="iconbtn" data-go="settings" aria-label="تنظیمات"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></button>
 </header>
+<div id="chips" class="gut" hidden></div>
 
 <main class="gut" id="main">
 
-  <!-- ===== دور موتور (صفحه‌ی اول) ===== -->
+  <!-- ===== داشبورد: ۵ صفحه‌ی ورقی، مثل پوشه‌ی DASHBOARD دستگاه ===== -->
   <section id="v-rpm">
     <div class="card connect" id="connectCard" hidden>
       <div><b>به آی‌باکس وصل نیستی</b><div class="note" id="connectNote">نزدیک ماشین یه بار وصل شو؛ از اون به بعد خودش وصل می‌شه.</div></div>
       <button class="btn primary" id="connectBtn">وصل شو</button>
     </div>
-    <svg class="gsvg gauge-big" id="gRpm" viewBox="0 0 200 172" direction="ltr" aria-label="دور موتور"></svg>
-    <div class="under">
-      <div><div class="v num" id="uSpd">--</div><div class="u">km/h</div></div>
-      <div><div class="v num" id="uGear">--</div><div class="u">دنده</div></div>
+    <div class="pgname" id="pgName">دور موتور</div>
+    <div class="pager" id="pager">
+      <div class="pg" data-name="دور موتور">
+        <svg class="gsvg gauge-big" id="gRpm" viewBox="0 0 200 172" direction="ltr" aria-label="دور موتور"></svg>
+        <div class="under">
+          <div><div class="v num" id="uSpd">--</div><div class="u">km/h</div></div>
+          <div><div class="v num" id="uGear">--</div><div class="u">دنده</div></div>
+        </div>
+        <div class="minis">
+          <button class="mini" data-go="m-bat" data-mk="bat"><div class="label">باتری</div><span class="v num">--</span> <span class="u">V</span></button>
+          <button class="mini" data-go="m-clt" data-mk="clt"><div class="label">دمای آب</div><span class="v num">--</span> <span class="u">°C</span></button>
+          <button class="mini" data-go="fuelset" data-mk="fuel"><div class="label">بنزین</div><span class="v num">--</span> <span class="u">%</span></button>
+        </div>
+      </div>
+      <div class="pg" data-name="سرعت">
+        <svg class="gsvg gauge-big" id="gSpd" viewBox="0 0 200 172" direction="ltr" aria-label="سرعت"></svg>
+        <div class="under">
+          <div><div class="v num" id="u2Rpm">--</div><div class="u">rpm</div></div>
+          <div><div class="v num" id="u2Gear">--</div><div class="u">دنده</div></div>
+        </div>
+      </div>
+      <div class="pg" data-name="نمای موتور">
+        <div class="ov">
+          <button class="card" data-go="m-bat"><div class="label">ولتاژ باتری</div><svg class="gsvg" id="gOvBat" viewBox="0 0 200 172" direction="ltr"></svg></button>
+          <button class="card" data-go="m-clt"><div class="label">دمای آب</div><svg class="gsvg" id="gOvClt" viewBox="0 0 200 172" direction="ltr"></svg></button>
+          <button class="card" data-go="m-oil"><div class="label">دمای روغن</div><svg class="gsvg" id="gOvOil" viewBox="0 0 200 172" direction="ltr"></svg></button>
+          <button class="card" data-go="m-lph"><div class="label">مصرف لحظه‌ای</div>
+            <div style="padding-top:18px"><span class="num" style="font-size:34px;font-weight:700" id="ovLph">--</span> <span class="note">L/h</span></div>
+            <div class="hbar"><i id="ovLphBar"></i></div>
+            <div class="note num" id="ovLp100" style="margin-top:6px">--</div></button>
+          <button class="card wide" data-go="m-knock"><div class="knock"><span class="lamp na" id="ovLamp"></span>
+            <div style="flex:1"><b id="ovKnock">ناک</b><div class="note" id="ovKnockN">--</div></div></div></button>
+        </div>
+      </div>
+      <div class="pg" data-name="برد باک">
+        <svg class="gsvg gauge-big" id="gRange" viewBox="0 0 200 172" direction="ltr" aria-label="برد باک"></svg>
+        <div class="facts">
+          <button class="card" data-go="m-fuelL"><div class="label">بنزین مونده</div><b id="rgL">--</b> <span class="note">L</span></button>
+          <button class="card" data-go="m-avg"><div class="label">میانگین</div><b id="rgAvg">--</b> <span class="note">L/100</span></button>
+          <button class="card" data-go="fuelset"><div class="label">سطح</div><b id="rgFuel">--</b> <span class="note">%</span></button>
+        </div>
+      </div>
+      <div class="pg" data-name="دمای بیرون">
+        <svg class="gsvg gauge-big" id="gAmb" viewBox="0 0 200 172" direction="ltr" aria-label="دمای بیرون"></svg>
+        <p class="note" id="ambNote" style="text-align:center"></p>
+      </div>
     </div>
-    <div class="minis">
-      <button class="mini" data-go="m-bat" data-mk="bat"><div class="label">باتری</div><span class="v num">--</span> <span class="u">V</span></button>
-      <button class="mini" data-go="m-clt" data-mk="clt"><div class="label">دمای آب</div><span class="v num">--</span> <span class="u">°C</span></button>
-      <button class="mini" data-go="fuelset" data-mk="fuel"><div class="label">بنزین</div><span class="v num">--</span> <span class="u">%</span></button>
-    </div>
+    <div class="dots" id="dots" role="group" aria-label="صفحه‌های داشبورد"></div>
   </section>
 
-  <!-- ===== خلاصه‌ی موتور ===== -->
-  <section id="v-overview">
-    <div class="ov">
-      <button class="card" data-go="m-bat"><div class="label">ولتاژ باتری</div><svg class="gsvg" id="gOvBat" viewBox="0 0 200 172" direction="ltr"></svg></button>
-      <button class="card" data-go="m-clt"><div class="label">دمای آب</div><svg class="gsvg" id="gOvClt" viewBox="0 0 200 172" direction="ltr"></svg></button>
-      <button class="card" data-go="m-oil"><div class="label">دمای روغن</div><svg class="gsvg" id="gOvOil" viewBox="0 0 200 172" direction="ltr"></svg></button>
-      <button class="card" data-go="m-lph"><div class="label">مصرف لحظه‌ای</div>
-        <div style="padding-top:18px"><span class="num" style="font-size:34px;font-weight:700" id="ovLph">--</span> <span class="note">L/h</span></div>
-        <div class="hbar"><i id="ovLphBar"></i></div>
-        <div class="note num" id="ovLp100" style="margin-top:6px">--</div></button>
-      <button class="card wide" data-go="m-knock"><div class="knock"><span class="lamp na" id="ovLamp"></span>
-        <div style="flex:1"><b id="ovKnock">ناک</b><div class="note" id="ovKnockN">--</div></div></div></button>
-    </div>
+  <!-- ===== منو: پوشه‌های دستگاه ===== -->
+  <section id="v-menu">
+    <div class="fgrid" id="fgrid"></div>
+    <p class="note" style="text-align:center">بازی‌ها و نمایش‌های «سرگرمی» فقط روی خود آی‌باکسه.</p>
+  </section>
+
+  <!-- ===== همه‌ی اطلاعات ===== -->
+  <section id="v-all">
+    <div class="search"><input id="aq" type="search" placeholder="جستجو: ولتاژ، دور موتور، بنزین…" autocomplete="off" aria-label="جستجو در اطلاعات"></div>
+    <div id="allList"></div>
   </section>
 
   <!-- ===== کنترل ===== -->
@@ -313,6 +376,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     </div>
     <button class="k home" data-key="home">منو</button>
     <p class="note" style="text-align:center">▲ و ▼ رو نگه داری پشت سر هم می‌ره.</p>
+    <div class="row" style="justify-content:center"><button class="btn" data-go="mirror">صفحه‌ی دستگاه رو هم ببین</button></div>
   </section>
 
   <!-- ===== آینه‌ی صفحه‌ی دستگاه ===== -->
@@ -474,6 +538,8 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     <div class="search"><input id="q" type="search" placeholder="کجا می‌ری؟ جستجو کن یا روی نقشه بزن" autocomplete="off" enterkeyhint="search" aria-label="جستجوی مقصد">
       <button class="btn primary" id="qBtn">جستجو</button></div>
     <div class="results" id="qRes" hidden></div>
+    <div class="row"><button class="btn" id="qPaste">چسباندن لینک گوگل‌مپ یا نشان</button></div>
+    <p class="note" id="shareHint">توی گوگل‌مپ یا نشان مقصد رو «اشتراک» کن و آی‌باکس رو انتخاب کن، یا لینکش رو کپی کن و اینجا بچسبون.</p>
     <div id="map" role="region" aria-label="نقشه"></div>
     <div class="card" id="routeCard" hidden>
       <div class="row between" style="flex-wrap:nowrap">
@@ -552,7 +618,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
   <!-- ===== تنظیمات ===== -->
   <section id="v-settings">
     <div class="card" id="linkCard">
-      <h3>اتصال گوشی به آی‌باکس</h3>
+      <h3>اتصال‌ها · گوشی</h3>
       <p class="note">نزدیک ماشین با بلوتوث، دور از ماشین از راه اینترنت. خودش بهترین راه رو انتخاب می‌کنه و اگه قطع شد خودش دوباره وصل می‌شه.</p>
       <div class="set"><div class="t">الان<small id="lkNow">—</small></div><button class="btn primary" id="lkBleBtn">وصل شدن با بلوتوث</button></div>
       <div class="set"><div class="t">از راه دور (اینترنت)<small id="lkNet">—</small></div><input type="checkbox" class="switch" data-flag="cloud" aria-label="اتصال از راه دور"></div>
@@ -572,7 +638,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     </div>
 
     <div class="card">
-      <h3>اینترنت دستگاه (وای‌فای)</h3>
+      <h3>اتصال‌ها · وای‌فای دستگاه</h3>
       <p class="note">دستگاه از هر وای‌فایی اینترنت می‌گیره: مودم خونه، هات‌اسپات گوشی، یا مودم داخل ماشین. تا ۵ شبکه یادش می‌مونه.</p>
       <div class="set"><div class="t">الان<small id="wifiTxt">—</small></div><button class="btn" data-cmd="portal">صفحه‌ی تنظیم روی دستگاه</button></div>
       <div id="wifiList"></div>
@@ -583,7 +649,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     </div>
 
     <div class="card">
-      <h3>نمایشگر</h3>
+      <h3>نمایش</h3>
       <div class="set"><div class="t">زبان</div><div class="seg" data-opt="lang"><button data-v="fa">فارسی</button><button data-v="en">English</button></div></div>
       <div class="set"><div class="t">شکل گیج‌ها</div><div class="seg" data-opt="gstyle"><button data-v="0">گرد</button><button data-v="1">نواری</button><button data-v="2">مدرن</button></div></div>
       <div class="set"><div class="t">تم رنگ<small id="themeName"></small></div><div class="swatches" id="themes"></div></div>
@@ -591,7 +657,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
       <div class="set"><div class="t">نور شب</div><div class="stepper" data-num="bnight"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">نور خودکار شب<small>۷ شب تا ۶ صبح از روی ساعت</small></div><input type="checkbox" class="switch" data-flag="bauto" aria-label="نور خودکار"></div>
       <div class="set"><div class="t">چرخش خودکار صفحه‌ها</div><div class="seg" data-opt="rotate"><button data-v="0">خاموش</button><button data-v="5">۵ ث</button><button data-v="10">۱۰ ث</button><button data-v="20">۲۰ ث</button></div></div>
-      <div class="set"><div class="t">محافظ صفحه</div><div class="seg" data-opt="saver"><button data-v="0">خاموش</button><button data-v="1">چشم‌ها</button><button data-v="2">شبانه</button><button data-v="3">هر دو</button><button data-v="4">ساعت</button></div></div>
+      <div class="set"><div class="t">محافظ صفحه</div><div class="seg" data-opt="saver"><button data-v="0">خاموش</button><button data-v="1">چشم‌ها</button><button data-v="2">شبانه</button><button data-v="3">هر دو</button><button data-v="4">ساعت</button><button data-v="5">همه‌ی نمایش‌ها</button><button data-v="6">آدمک</button></div></div>
       <div class="set"><div class="t">شروع</div><div class="seg" data-opt="istyle"><button data-v="0">کره‌ی نقطه‌ای</button><button data-v="1">اسپرت</button></div></div>
       <div class="set"><div class="t">انیمیشن خوش‌آمد</div><input type="checkbox" class="switch" data-flag="welcome" aria-label="انیمیشن خوش‌آمد"></div>
       <div class="set"><div class="t">اسم روی صفحه‌ی شروع</div>
@@ -605,7 +671,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     </div>
 
     <div class="card">
-      <h3>خودرو</h3>
+      <h3>ماشین</h3>
       <div class="set"><div class="t">بنزین باک<small id="fuelSetTxt">—</small></div><button class="btn" data-go="fuelset">تنظیم</button></div>
       <div class="set"><div class="t">وزن خودرو<small>برای محاسبه‌ی قدرت و گشتاور</small></div><div class="stepper" data-num="weight"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">حجم باک</div><div class="stepper" data-num="tank"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
@@ -615,7 +681,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     </div>
 
     <div class="card">
-      <h3>سرویس و هشدار</h3>
+      <h3>هشدارها و سرویس</h3>
       <div class="set"><div class="t">تعویض روغن هر</div><div class="stepper" data-num="svo"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">فیلتر هوا هر</div><div class="stepper" data-num="sva"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
       <div class="set"><div class="t">شمع هر</div><div class="stepper" data-num="svp"><button aria-label="کم کن">−</button><output></output><button aria-label="زیاد کن">+</button></div></div>
@@ -626,7 +692,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     </div>
 
     <div class="card">
-      <h3>سیستم</h3>
+      <h3>دستگاه</h3>
       <div class="set"><div class="t">ارتباط با ماشین<small id="obdTxt">—</small></div><div class="row"><button class="btn" data-cmd="reconnect">دوباره</button><button class="btn" data-cmd="elmforget">جفت شدن از نو</button></div></div>
       <div class="set"><div class="t">قطعه‌ها<small id="hwTxt">—</small></div></div>
       <div class="set"><div class="t">ساعت<small>ساعت دستگاه رو با این گوشی یکی کن</small></div><button class="btn" data-cmd="clock">همگام‌سازی</button></div>
@@ -640,25 +706,18 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
     <div class="card about">
       <img src="logo.svg" alt="لوگوی آی‌باکس">
       <div><b style="font:700 22px var(--f-num)">i<span style="color:var(--accent)">Box</span></b>
-        <div class="note">نمایشگر هوشمند خودرو · برنامه <span class="num">0.5</span></div></div>
+        <div class="note">نمایشگر هوشمند خودرو · برنامه <span class="num">0.6</span></div></div>
     </div>
   </section>
 </main>
 
 <nav class="tabs" aria-label="بخش‌ها">
-  <button data-go="rpm"><svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/></svg>گیج</button>
-  <button data-go="overview"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="2"/><rect x="14" y="4" width="7" height="7" rx="2"/><path d="M4 18h16M4 15h9"/></svg>خلاصه</button>
+  <button data-go="rpm"><svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-5"/></svg>داشبورد</button>
+  <button data-go="menu"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>منو</button>
+  <button data-go="all"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3"/><circle cx="4.5" cy="12" r="1.3"/><circle cx="4.5" cy="18" r="1.3"/></svg>همه</button>
+  <button data-go="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg>مسیر</button>
   <button data-go="control"><svg viewBox="0 0 24 24"><path d="M12 3l3 4H9zM12 21l-3-4h6zM3 12l4-3v6zM21 12l-4 3V9z"/><circle cx="12" cy="12" r="2"/></svg>کنترل</button>
-  <button data-go="map"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></svg>نقشه</button>
-  <button id="allTab"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>همه</button>
 </nav>
-
-<div id="scrim"></div>
-<aside id="drawer" aria-label="همه‌ی بخش‌ها" aria-hidden="true">
-  <div class="dhead"><input id="dq" type="search" placeholder="جستجو: ولتاژ، دور موتور، نقشه…" autocomplete="off" aria-label="جستجو در بخش‌ها">
-    <button class="iconbtn" id="dClose" aria-label="بستن"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <div id="dlist"></div>
-</aside>
 
 <div id="dual" aria-label="دور موتور و سرعت">
   <svg class="gsvg" id="gDualRpm" viewBox="0 0 200 172" direction="ltr"></svg>
@@ -718,7 +777,7 @@ const T = {
   lph:  ["مصرف لحظه‌ای","L/h",1, null, null, [0,30,5]],
   lp100:["مصرف در ۱۰۰ کیلومتر","L/100km",1, null, null, [0,30,5]],
   avg:  ["میانگین مصرف","L/100km",1, null, null, [0,20,5]],
-  range:["برد باک","km",0, v=> v<50?"hot": v<100?"warn":"ok", null, [0,800,100]],
+  range:["برد باک","km",0, v=> v<50?"hot": v<100?"warn":"ok", null, [0,800,200]],
   fuelL:["بنزین باقی‌مانده","L",1, null, null, [0,80,10]],
   amb:  ["دمای بیرون","°C",0, v=> v<3?"cold":"ok", null, [-20,50,10]],
   load: ["بار موتور","%",0, v=> v>90?"warn":"ok", null, [0,100,20]],
@@ -764,71 +823,75 @@ const IC = {
   remote:'<path d="M5 12a10 10 0 0 1 14 0"/><path d="M8 15a6 6 0 0 1 8 0"/><circle cx="12" cy="18" r="1.3"/>',
   set:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
 };
-// [گروه، صفحه‌ی گروه یا null، [[عنوان، مسیر، آیکن، کلید مقدار]...]]
-const DRAWER = [
-  ["نمایش", null, [["دور موتور","rpm","gauge","rpm"],["سرعت","m-spd","speed","spd"],["خلاصه‌ی موتور","overview","ov"],
-    ["آینه‌ی صفحه‌ی دستگاه","mirror","lcd"],["کنترل دستگاه","control","pad"]]],
-  ["دما", null, [["دمای آب","m-clt","temp","clt"],["دمای روغن","m-oil","temp","oil"],["دمای هوای ورودی","m-iat","temp","iat"],
-    ["دمای کاتالیست","m-cat","temp","cat"],["دمای بیرون","m-amb","temp","amb"]]],
-  ["برق","car-elec", [["ولتاژ باتری","m-bat","bolt","bat"],["ولتاژ کامپیوتر ماشین","m-ecuv","bolt","ecuv"],["شارژ و نمودار ولتاژ","car-elec","wave"]]],
-  ["سوخت","car-fuel", [["مصرف لحظه‌ای","m-lph","fuel","lph"],["مصرف در ۱۰۰ کیلومتر","m-lp100","fuel","lp100"],["میانگین مصرف","m-avg","fuel","avg"],
-    ["برد باک","m-range","fuel","range"],["سطح بنزین","m-fuel","fuel","fuel"],["تنظیم بنزین باک","fuelset","fuel"]]],
-  ["موتور","car-engine", [["بار موتور","m-load","engine","load"],["آوانس جرقه","m-ign","engine","ign"],["بوست توربو","m-boost","engine","boost"],
-    ["ناک","m-knock","engine","knock"],["دنده","m-gear","engine","gear"],["قدرت","m-hp","perf","hp"],["گشتاور","m-nm","perf","nm"]]],
-  ["سفر و عملکرد", null, [["سفرها","car-trips","trips"],["شتاب، ترمز و رکوردها","car-perf","perf"]]],
-  ["عیب‌یابی","car-diag", [["کدهای خطا","car-diag","diag"],["دریچه گاز","m-tps","wave","tps"],["فشار منیفولد","m-map","wave","map"],
-    ["جریان هوا","m-maf","wave","maf"],["تریم کوتاه‌مدت","m-stft","wave","stft"],["تریم بلندمدت","m-ltft","wave","ltft"],["سنسور اکسیژن","m-o2","wave","o2"]]],
-  ["راه و جهت", null, [["نقشه و مسیریابی","map","map"],["قطب‌نما","car-comp","comp"],["شیب‌سنج","car-tilt","tilt"]]],
-  ["ماشین و دستگاه", null, [["ماشین از دور","remote","remote"],["وصل شدن با کد (آیفون)","paircode","remote"],["تنظیمات","settings","set"]]],
+/* ===== پوشه‌ها: همون ترتیب و رنگ منوی دستگاه (v32.23) ===== */
+const FOLD = [
+  {id:"dash", n:"داشبورد", c:"#4adaff", ic:"gauge", k:"rpm", s:"دور، سرعت، نمای موتور، برد، دمای بیرون", items:[["دور موتور","rpm"]]},
+  {id:"perf", n:"پرفورمنس", c:"#ff8eb5", ic:"perf", k:"hp", s:"قدرت، گشتاور، شتاب، رکوردها",
+    items:[["شتاب و رکوردها","car-perf"],["قدرت","m-hp"],["گشتاور","m-nm"],["دنده","m-gear"]]},
+  {id:"engine", n:"موتور", c:"#ffb96b", ic:"engine", k:"clt", s:"بار، آوانس، ناک، دماها، بوست",
+    items:[["همه","car-engine"],["بار موتور","m-load"],["آوانس جرقه","m-ign"],["ناک","m-knock"],["دمای آب","m-clt"],["هوای ورودی","m-iat"],["بوست توربو","m-boost"],["دمای روغن","m-oil"],["کاتالیست","m-cat"]]},
+  {id:"elec", n:"برق", c:"#ffe27b", ic:"bolt", k:"bat", s:"باتری، شارژ، نمودار ولتاژ",
+    items:[["باتری","m-bat"],["شارژ و نمودار","car-elec"],["ولتاژ کامپیوتر","m-ecuv"]]},
+  {id:"diag", n:"عیب‌یابی", c:"#ff8a7b", ic:"diag", s:"کدهای خطا و داده‌ی سنسورها",
+    items:[["کدهای خطا","car-diag"],["دریچه گاز","m-tps"],["فشار منیفولد","m-map"],["جریان هوا","m-maf"],["سنسور اکسیژن","m-o2"],["تریم کوتاه","m-stft"],["تریم بلند","m-ltft"]]},
+  {id:"nav", n:"نقشه", c:"#5af6bd", ic:"map", s:"مسیر، قطب‌نما، شیب‌سنج",
+    items:[["مسیر","map"],["قطب‌نما","car-comp"],["شیب‌سنج","car-tilt"]]},
+  {id:"trip", n:"سفر و بنزین", c:"#7bf3ce", ic:"fuel", k:"range", s:"مصرف، بنزین باک، سفرها",
+    items:[["سوخت","car-fuel"],["مصرف لحظه‌ای","m-lph"],["میانگین مصرف","m-avg"],["سطح بنزین","m-fuel"],["تنظیم بنزین","fuelset"],["برد باک","m-range"],["سفرها","car-trips"]]},
+  {id:"set", n:"تنظیمات", c:"#8ed2ff", ic:"set", s:"اتصال، نمایش، صدا، ماشین، دستگاه",
+    items:[["تنظیمات","settings"],["ماشین از دور","remote"],["وصل با کد","paircode"]]},
 ];
-function buildDrawer(){
-  $("dlist").innerHTML = DRAWER.map(([g,page,items])=>
-    `<div class="dgrp" data-grp><span>${g}</span>${page?`<button data-go="${page}">همه ←</button>`:""}</div>`+
-    items.map(([t,r,ic,k])=>`<button class="ditem" data-go="${r}" data-q="${t} ${g}"><svg viewBox="0 0 24 24">${IC[ic]}</svg><span>${t}</span>${k?`<span class="dv" data-dv="${k}"></span>`:""}</button>`).join("")
-  ).join("");
+const folderOf = v => FOLD.find(f=>f.items.some(it=>it[1]===v)) || null;
+$("fgrid").innerHTML = FOLD.map(f=>`<button class="ftile" style="--fc:${f.c}" data-go="${f.id==="dash"?"rpm":f.items[0][1]}">
+  <svg viewBox="0 0 24 24">${IC[f.ic]}</svg><b>${f.n}</b><small>${f.s}</small>${f.k?`<span class="fv" data-fk="${f.k}"></span>`:""}</button>`).join("");
+function renderMenu(){ document.querySelectorAll("[data-fk]").forEach(el=>{ el.textContent = dvText(el.dataset.fk); }); }
+function renderChips(v){
+  const f=folderOf(v), el=$("chips");
+  if (!f || f.id==="dash"){ el.hidden=true; $("title").style.color=""; return; }
+  el.hidden=false; el.style.setProperty("--fc", f.c); $("title").style.color=f.c;
+  el.innerHTML = f.items.map(([t,r])=>`<button data-go="${r}" data-rep="1"${r===v?' aria-current="page"':""}>${t}</button>`).join("");
+  const cur=el.querySelector("[aria-current]"); if (cur) cur.scrollIntoView({inline:"center", block:"nearest"});
 }
-buildDrawer();
+// همه‌ی اطلاعات: یه صفحه، دسته‌بندی‌شده مثل منو
+const ALLK = { dash:["rpm","spd","gear","amb"], perf:["hp","nm"], engine:["load","ign","knock","clt","oil","iat","boost","cat"],
+  elec:["bat","ecuv","chg","vmin","vmax"], diag:["tps","map","maf","o2","stft","ltft"], trip:["lph","lp100","avg","range","fuel","fuelL"] };
+$("allList").innerHTML = FOLD.filter(f=>ALLK[f.id]).map(f=>`<h3 class="agrp" style="color:${f.c}" data-agrp>${f.n}</h3><div class="tiles" data-tiles="a-${f.id}"></div>`).join("");
 function dvText(k){
   const v=S.d[k], t=T[k]; if (v==null || !t) return "";
   if (t[4]) return t[4](v);
   return fmt(v, t[2]) + (t[1] ? " "+t[1] : "");
 }
-function renderDrawer(){
-  document.querySelectorAll("[data-dv]").forEach(el=>{ el.textContent = dvText(el.dataset.dv); });
-  document.querySelectorAll(".ditem").forEach(b=>{ if (b.dataset.go===S.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
-}
-function openDrawer(){ renderDrawer(); $("drawer").classList.add("show"); $("drawer").setAttribute("aria-hidden","false"); $("scrim").classList.add("show"); }
-function closeDrawer(){ $("drawer").classList.remove("show"); $("drawer").setAttribute("aria-hidden","true"); $("scrim").classList.remove("show"); $("dq").value=""; filterDrawer(""); }
-function filterDrawer(q){
+function filterAll(q){
   q=q.trim();
-  document.querySelectorAll(".ditem").forEach(b=>b.hidden = !!q && !b.dataset.q.includes(q));
-  document.querySelectorAll("[data-grp]").forEach(g=>{
-    let n=g.nextElementSibling, any=false; while(n && n.classList.contains("ditem")){ if(!n.hidden) any=true; n=n.nextElementSibling; }
-    g.hidden = !any;
-  });
+  document.querySelectorAll("#allList .tile").forEach(b=>b.hidden = !!q && !b.textContent.includes(q));
+  document.querySelectorAll("[data-agrp]").forEach(h=>{ h.hidden = ![...h.nextElementSibling.children].some(c=>!c.hidden); });
 }
-$("menuBtn").onclick=openDrawer; $("allTab").onclick=openDrawer; $("dClose").onclick=closeDrawer; $("scrim").onclick=closeDrawer;
-$("dq").addEventListener("input", e=>filterDrawer(e.target.value));
+$("aq").addEventListener("input", e=>filterAll(e.target.value));
 
 /* ===== routing: پشته‌ی صفحه‌ها، دکمه‌ی برگشت، کشیدن به راست ===== */
-const VIEWS = { rpm:"دور موتور", overview:"خلاصه‌ی موتور", control:"کنترل دستگاه", mirror:"آینه‌ی صفحه‌ی دستگاه", fuelset:"تنظیم بنزین باک",
+const VIEWS = { rpm:"داشبورد", menu:"منو", all:"همه‌ی اطلاعات", overview:"خلاصه‌ی موتور", control:"کنترل دستگاه", mirror:"آینه‌ی صفحه‌ی دستگاه", fuelset:"تنظیم بنزین باک",
   map:"نقشه و مسیریابی", "car-engine":"موتور", "car-fuel":"سوخت", "car-trips":"سفرها", "car-elec":"برق", "car-perf":"عملکرد",
   "car-diag":"عیب‌یابی", "car-tilt":"شیب‌سنج", "car-comp":"قطب‌نما", remote:"ماشین از دور", settings:"تنظیمات", paircode:"وصل شدن با کد" };
 const TABS = ["rpm","overview","control","map"];
 const viewOk = v => !!VIEWS[v] || (v.startsWith("m-") && !!T[v.slice(2)]);
 const viewTitle = v => v.startsWith("m-") ? T[v.slice(2)][0] : VIEWS[v];
+const ROOTS = ["rpm","menu","all","map","control"];
+const tabOf = v => ROOTS.includes(v) ? v : v==="mirror" ? "control" : "menu";
 function go(v, how="push"){
+  let pg=null;
+  if (v==="overview"){ v="rpm"; pg=2; }                         // «نمای موتور» = صفحه‌ی سوم داشبورد
   if (!viewOk(v)) v="rpm";
-  closeDrawer();
-  if (v===S.view) return;
+  if (v===S.view){ if (pg!=null) pagerTo(pg); return; }
   if (how==="push" && S.view){ S.depth++; history.pushState({d:S.depth}, "", "#"+v); }
   else history.replaceState({d:S.depth}, "", "#"+v);
   S.view=v;
   const sec = v.startsWith("m-") ? "metric" : v;
   document.querySelectorAll("main section").forEach(s=>s.classList.toggle("active", s.id==="v-"+sec));
-  document.querySelectorAll("nav.tabs button[data-go]").forEach(b=>{ if (b.dataset.go===v) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  const tab=tabOf(v);
+  document.querySelectorAll("nav.tabs button[data-go]").forEach(b=>{ if (b.dataset.go===tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
   const root = v==="rpm";
-  $("backBtn").hidden = root; $("brand").hidden = !root; $("title").hidden = root; $("title").textContent = root ? "" : viewTitle(v);
+  $("backBtn").hidden = ROOTS.includes(v); $("brand").hidden = !root; $("title").hidden = root; $("title").textContent = root ? "" : viewTitle(v);
+  renderChips(v);
   document.body.dataset.view = v;
   updateDual();
   if (v==="map"){ initMap(); startGeo(); }
@@ -838,25 +901,24 @@ function go(v, how="push"){
   if (v==="paircode") pcReset();
   $("main").scrollTop=0;
   render(true);
+  if (pg!=null) setTimeout(()=>pagerTo(pg, false), 0);
 }
 function goBack(){
   if (S.depth>0) history.back();
-  else go(S.view.startsWith("m-") || S.view==="fuelset" ? "rpm" : S.view.startsWith("car-") ? "rpm" : "rpm", "replace");
+  else go(folderOf(S.view) ? "menu" : "rpm", "replace");
 }
 window.addEventListener("popstate", e=>{ S.depth = e.state?.d || 0; const h=location.hash.slice(1)||"rpm"; S.view===h || go(h, "pop"); });
-document.addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if (b){ e.preventDefault(); go(b.dataset.go); } });
+document.addEventListener("click", e=>{ const b=e.target.closest("[data-go]"); if (b){ e.preventDefault(); go(b.dataset.go, b.dataset.rep ? "replace" : "push"); } });
 $("backBtn").onclick=goBack;
 // کشیدن انگشت به راست = برگشت (روی نقشه و دکمه‌های کنترل نه)
 (function(){
   let sw=null;
-  const start = e=>{ if (e.touches.length!==1 || e.target.closest("#map,.pad,.k,input,select,.fuelbar,.lcd")){ sw=null; return; }
+  const start = e=>{ if (e.touches.length!==1 || e.target.closest("#map,.pad,.k,input,select,.fuelbar,.lcd,.pager,#chips")){ sw=null; return; }
     sw={x:e.touches[0].clientX, y:e.touches[0].clientY, t:Date.now()}; };
   const end = (e, fn)=>{ if (!sw) return; const c=e.changedTouches[0], dx=c.clientX-sw.x, dy=c.clientY-sw.y;
     if (dx>70 && Math.abs(dy)<Math.max(50, dx*0.5) && Date.now()-sw.t<800) fn(); sw=null; };
   $("main").addEventListener("touchstart", start, {passive:true});
-  $("main").addEventListener("touchend", e=>end(e, ()=>{ if (S.view!=="rpm") goBack(); }), {passive:true});
-  $("drawer").addEventListener("touchstart", start, {passive:true});
-  $("drawer").addEventListener("touchend", e=>end(e, closeDrawer), {passive:true});
+  $("main").addEventListener("touchend", e=>end(e, ()=>{ if (!ROOTS.includes(S.view)) goBack(); }), {passive:true});
 })();
 
 /* ===== gauges ===== */
@@ -898,9 +960,22 @@ function gaugeFor(svg, k, extra){
 }
 const G = {
   rpm: gaugeFor($("gRpm"), "rpm", {big:40, unit:"rpm"}),
+  spd: gaugeFor($("gSpd"), "spd", {big:44}), range: gaugeFor($("gRange"), "range", {big:40, step:200}), amb: gaugeFor($("gAmb"), "amb", {big:44}),
   ovBat: gaugeFor($("gOvBat"), "bat", {thin:true, step:2}), ovClt: gaugeFor($("gOvClt"), "clt", {thin:true, step:30}), ovOil: gaugeFor($("gOvOil"), "oil", {thin:true, step:26}),
   dRpm: gaugeFor($("gDualRpm"), "rpm", {big:40, label:"دور موتور"}), dSpd: gaugeFor($("gDualSpd"), "spd", {big:44, label:"سرعت"}),
 };
+
+/* ===== صفحه‌های ورقی داشبورد ===== */
+$("dots").innerHTML = [...$("pager").children].map((p,i)=>`<button data-pg="${i}" aria-label="${p.dataset.name}"></button>`).join("");
+const pagerIdx = () => { const p=$("pager"); return Math.round(Math.abs(p.scrollLeft)/Math.max(1,p.clientWidth)); };
+function pagerTo(i, smooth=true){ const p=$("pager"); p.scrollTo({left:(getComputedStyle(p).direction==="rtl"?-1:1)*i*p.clientWidth, behavior:smooth?"smooth":"auto"}); pagerSync(i); }
+function pagerSync(i=pagerIdx()){
+  $("dots").querySelectorAll("button").forEach((b,j)=>b.setAttribute("aria-current", j===i ? "true" : "false"));
+  $("pgName").textContent = $("pager").children[i]?.dataset.name || "";
+}
+$("pager").addEventListener("scroll", ()=>{ clearTimeout(pagerSync.h); pagerSync.h=setTimeout(()=>pagerSync(), 60); }, {passive:true});
+$("dots").addEventListener("click", e=>{ const b=e.target.closest("[data-pg]"); if (b){ vib(8); pagerTo(+b.dataset.pg); } });
+pagerSync(0);
 
 /* ===== landscape: فقط دو گیج ===== */
 const landMq = matchMedia("(orientation:landscape) and (max-height:560px)");
@@ -918,6 +993,10 @@ function renderRpm(){
   G.rpm.set(d.rpm);
   $("uSpd").textContent = fmt(d.spd); $("uGear").textContent = d.gear==null ? "--" : d.gear;
   document.querySelectorAll("#v-rpm [data-mk]").forEach(el=>setMini(el, el.dataset.mk));
+  G.spd.set(d.spd); $("u2Rpm").textContent = fmt(d.rpm); $("u2Gear").textContent = d.gear==null ? "--" : d.gear;
+  G.range.set(d.range); $("rgL").textContent = fmt(d.fuelL,1); $("rgAvg").textContent = fmt(d.avg,1); $("rgFuel").textContent = fmt(d.fuel);
+  G.amb.set(d.amb); $("ambNote").textContent = d.amb==null ? "دستگاه هنوز دمای بیرون رو نفرستاده" : d.amb<3 ? "احتمال یخ‌زدگی جاده؛ آروم‌تر برو" : "";
+  renderOverview();
   const off = S.mode==="off" && !LK.ble && !LK.net && !LK.wifi;
   $("connectCard").hidden = !off;
   if (off) $("connectNote").textContent = LK.pair ? "منتظر آی‌باکس… (خودش وصل می‌شه)" : "نزدیک ماشین یه بار وصل شو؛ از اون به بعد خودش وصل می‌شه.";
@@ -977,6 +1056,7 @@ const PAGES = {
   perf:["hp","nm","gear","rpm"],
   diag:["tps","map","maf","stft","ltft","o2","ecuv","iat"],
 };
+for (const g in ALLK) PAGES["a-"+g] = ALLK[g];
 document.querySelectorAll("[data-tiles]").forEach(el=>{
   el.innerHTML = PAGES[el.dataset.tiles].map(k=>{ const [t,u]=T[k];
     const link = T[k][5] || ["knock","gear"].includes(k);
@@ -1056,14 +1136,25 @@ const PAGE_FA = { MAIN:"منوی اصلی", DASHBOARD:"داشبورد", ENGINE:"
   "FUEL TRIM SHORT":"تریم کوتاه‌مدت", "FUEL TRIM LONG":"تریم بلندمدت", "O2 SENSOR":"سنسور اکسیژن", MAP:"نقشه", COMPASS:"قطب‌نما",
   "G-METER":"شتاب‌سنج", INCLINOMETER:"شیب‌سنج", "PARK GUARD":"محافظ پارک", "TRIP SUMMARY":"خلاصه‌ی سفر", "READ CODES":"کدهای خطا",
   "POWER & TORQUE":"قدرت و گشتاور", ACCELERATION:"شتاب", "TOP RECORDS":"رکوردها", "ROBOT EYES":"چشم‌ها", "PHONE APP":"اپ گوشی",
-  LANGUAGE:"زبان", BRIGHTNESS:"نور", VOLUME:"بلندی صدا", THEME:"تم رنگ", SOUND:"صدا" };
+  LANGUAGE:"زبان", BRIGHTNESS:"نور", VOLUME:"بلندی صدا", THEME:"تم رنگ", SOUND:"صدا",
+  "TRIPS & FUEL":"سفر و بنزین", "POWER NUMBERS":"عددهای قدرت", "POWER TIMELINE":"نمودار قدرت", "LIVE GRAPH":"نمودار زنده", "402 m":"۴۰۲ متر",
+  "100-0 BRAKING":"ترمز ۱۰۰ تا ۰", LEADERBOARD:"جدول رکورد", "VOLTAGE GRAPH":"نمودار ولتاژ", "MIN / MAX":"کمترین و بیشترین", "BATTERY TEST":"تست باتری",
+  ALTERNATOR:"دینام", "CLEAR CODES":"پاک کردن کدها", "CODE HISTORY":"تاریخچه‌ی کدها", "FAULT ALERTS":"هشدار خطاها", "ECU INFO":"اطلاعات ماشین",
+  "ECU DATA LIST":"لیست داده‌ها", "LEAK TEST":"تست نشتی", "THIS TRIP":"این سفر", "LAST TRIP":"سفر قبلی", TODAY:"امروز", "LAST 7 DAYS":"۷ روز گذشته",
+  "LAST 30 DAYS":"۳۰ روز گذشته", TOTAL:"کل", "ECO SCORE":"امتیاز اقتصادی", DISPLAY:"نمایش", "SOUND & VOICE":"صدا و دستیار",
+  "CAR & ALERTS":"ماشین و هشدارها", CONNECTIONS:"اتصال‌ها", DEVICE:"دستگاه", "SPEED ALERT":"هشدار سرعت", "SHIFT LIGHT":"چراغ تعویض دنده",
+  WIFI:"وای‌فای", "SOFTWARE UPDATE":"به‌روزرسانی", CLOCK:"ساعت", ABOUT:"درباره", "GAUGE STYLE":"شکل گیج", "TANK SIZE":"حجم باک" };
 const PAGE_KEY = { RPM:"rpm", SPEED:"spd", "OUTSIDE TEMP":"amb", "ENGINE LOAD":"load", "IGNITION ADVANCE":"ign", "INTAKE AIR TEMP":"iat",
   "TURBO BOOST":"boost", "OIL TEMP":"oil", "CATALYST TEMP":"cat", "FUEL NOW":"lph", "FUEL AVERAGE":"avg", RANGE:"range", "FUEL LEVEL":"fuel",
   BATTERY:"bat", "ECU VOLTAGE":"ecuv", THROTTLE:"tps", "MANIFOLD PRESSURE":"map", "AIR FLOW":"maf", "FUEL TRIM SHORT":"stft",
   "FUEL TRIM LONG":"ltft", "O2 SENSOR":"o2", COOLANT:"clt" };
 const PAGE_APP = { "ENGINE OVERVIEW":"overview", "SET FUEL LEVEL":"fuelset", MAP:"map", COMPASS:"car-comp", INCLINOMETER:"car-tilt",
-  "PARK GUARD":"remote", "READ CODES":"car-diag", "TOP RECORDS":"car-perf", ACCELERATION:"car-perf", "TRIP SUMMARY":"car-trips" };
-const FOLDER_NAMES = ["DASHBOARD","ENGINE","FUEL","TRIPS","ELECTRICAL","PERFORMANCE","DIAGNOSTICS","NAVIGATION","TOOLS","FUN","SETTINGS"];
+  "PARK GUARD":"remote", "READ CODES":"car-diag", "TOP RECORDS":"car-perf", ACCELERATION:"car-perf", "TRIP SUMMARY":"car-trips",
+  "POWER & TORQUE":"m-hp", "POWER NUMBERS":"m-hp", "KNOCK WATCH":"m-knock", CHARGING:"car-elec", "VOLTAGE GRAPH":"car-elec", "MIN / MAX":"car-elec",
+  "CLEAR CODES":"car-diag", "CODE HISTORY":"car-diag", "ECU INFO":"car-diag", "402 m":"car-perf", "100-0 BRAKING":"car-perf", LEADERBOARD:"car-perf",
+  "THIS TRIP":"car-trips", "LAST TRIP":"car-trips", TODAY:"car-trips", "LAST 7 DAYS":"car-trips", "LAST 30 DAYS":"car-trips", TOTAL:"car-trips" };
+const FOLDER_NAMES = ["DASHBOARD","PERFORMANCE","ENGINE","ELECTRICAL","DIAGNOSTICS","NAVIGATION","TRIPS & FUEL","FUN","SETTINGS",
+  "DISPLAY","SOUND & VOICE","CAR & ALERTS","CONNECTIONS","DEVICE"];   // ترتیب v32.23
 const pageFa = p => PAGE_FA[p] || p || "--";
 let lcdKey=null, lcdG=null;
 function renderMirror(){
@@ -1090,10 +1181,14 @@ $("lcd").onclick=()=>{ const p=S.d.page; if (PAGE_KEY[p]) go("m-"+PAGE_KEY[p]); 
 function renderControl(){ $("ctlPage").textContent = S.d.page ? pageFa(S.d.page) : (isLive() ? "…" : "--"); }
 
 /* --- منوی ساختگی برای حالت نمایشی --- */
-const DEMO_TREE = { DASHBOARD:["RPM","SPEED","ENGINE OVERVIEW","RANGE","OUTSIDE TEMP"],
-  ENGINE:["ENGINE LOAD","IGNITION ADVANCE","INTAKE AIR TEMP","OIL TEMP","CATALYST TEMP","KNOCK WATCH"],
-  FUEL:["FUEL NOW","FUEL AVERAGE","RANGE","FUEL LEVEL","SET FUEL LEVEL"], ELECTRICAL:["BATTERY","CHARGING","ECU VOLTAGE"],
-  NAVIGATION:["MAP","COMPASS","G-METER","INCLINOMETER"], SETTINGS:["LANGUAGE","BRIGHTNESS","VOLUME","THEME"] };
+const DEMO_TREE = { DASHBOARD:["RPM","SPEED","ENGINE OVERVIEW","RANGE","OUTSIDE TEMP","WEATHER","DRIVE BUDDY"],
+  PERFORMANCE:["POWER & TORQUE","POWER NUMBERS","POWER TIMELINE","LIVE GRAPH","ACCELERATION","402 m","100-0 BRAKING","TOP RECORDS","LEADERBOARD"],
+  ENGINE:["ENGINE LOAD","IGNITION ADVANCE","KNOCK WATCH","INTAKE AIR TEMP","TURBO BOOST","OIL TEMP","CATALYST TEMP"],
+  ELECTRICAL:["BATTERY","VOLTAGE GRAPH","MIN / MAX","BATTERY TEST","CHARGING","ALTERNATOR","ECU VOLTAGE"],
+  DIAGNOSTICS:["READ CODES","CLEAR CODES","CODE HISTORY","FAULT ALERTS","ECU INFO","ECU DATA LIST","LEAK TEST","THROTTLE","MANIFOLD PRESSURE","AIR FLOW","O2 SENSOR","FUEL TRIM SHORT","FUEL TRIM LONG"],
+  NAVIGATION:["MAP","COMPASS","G-METER","INCLINOMETER"],
+  "TRIPS & FUEL":["FUEL NOW","FUEL AVERAGE","FUEL LEVEL","SET FUEL LEVEL","TRIP SUMMARY","THIS TRIP","LAST TRIP","TODAY","LAST 7 DAYS","LAST 30 DAYS","TOTAL","ECO SCORE"],
+  SETTINGS:["DISPLAY","SOUND & VOICE","CAR & ALERTS","CONNECTIONS","DEVICE"] };
 const demoMenu = { lvl:2, f:0, i:0 };
 const demoFolder = () => FOLDER_NAMES.filter(f=>DEMO_TREE[f])[demoMenu.f];
 function demoPage(){ return demoMenu.lvl===0 ? "MAIN" : demoMenu.lvl===1 ? demoFolder() : DEMO_TREE[demoFolder()][demoMenu.i]; }
@@ -1299,8 +1394,31 @@ function onCarFix(){
 
 /* ===== مسیریابی داخل اپ: مقصد → OSRM → دستگاه؛ گوگل‌مپ فقط برای صدا ===== */
 const RT = { dest:null, name:"", route:null, sentAt:0 };
+// مختصات از لینک یا متن اشتراکی گوگل‌مپ / نشان / اپل‌مپ / geo:
+function parseLoc(s){
+  s = String(s).replace(/[۰-۹]/g, d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/٫/g, ".").replace(/%2C/gi, ",").replace(/%40/g, "@");
+  const pats = [/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, /[?&](?:q|ll|sll|daddr|destination|query|center|dst|p)=(?:loc:)?(-?\d+\.\d+),\s*(-?\d+\.\d+)/,
+    /@(-?\d+\.\d+),(-?\d+\.\d+)/, /geo:(-?\d+\.\d+),(-?\d+\.\d+)/, /(-?\d{1,2}\.\d{3,})\s*[,،]\s*(-?\d{1,3}\.\d{3,})/];
+  for (const p of pats){ const m=s.match(p); if (m){ const a=+m[1], b=+m[2]; if (Math.abs(a)<=90 && Math.abs(b)<=180 && (a||b)) return [a,b]; } }
+  return null;
+}
+function handleShared(txt){
+  txt = String(txt||"").trim(); if (!txt) return;
+  if (S.view!=="map") go("map");
+  const ll = parseLoc(txt);
+  const words = txt.split(/\n+/).map(x=>x.replace(/https?:\/\/\S+/g,"").trim()).filter(x=>x && !/^[\d.,\s،-]+$/.test(x));
+  if (ll){ setDest(ll[0], ll[1], (words[0]||"مقصد اشتراکی").slice(0,40)); toast("مقصد از لینک گرفته شد", "ok"); return; }
+  if (words.length){ $("q").value = words.slice(0,2).join(" ").slice(0,120); findPlace(); toast("مقصد رو از لیست انتخاب کن"); return; }
+  $("shareHint").textContent = "از این لینک کوتاه مقصد درنمیاد. توی گوگل‌مپ روی نقطه انگشت نگه دار، مختصات (مثل 35.70, 51.40) رو کپی کن و اینجا بچسبون؛ یا اسم جا رو جستجو کن.";
+  toast("از این لینک مقصد درنیومد", "", 3500);
+}
+$("qPaste").onclick=async()=>{
+  try{ const t=await navigator.clipboard.readText(); if (!t.trim()){ toast("چیزی کپی نشده"); return; } handleShared(t); }
+  catch(e){ toast("لینک رو توی کادر جستجو بچسبون"); $("q").focus(); }
+};
 async function findPlace(){
   const q=$("q").value.trim(); if (!q) return;
+  if (parseLoc(q) || /^https?:\/\//.test(q)){ $("qRes").hidden=true; handleShared(q); return; }
   const res=$("qRes"); res.hidden=false; res.innerHTML='<button disabled>در حال جستجو…</button>';
   let near=""; const c = S.last || (S.phone.lat!=null ? {lat:S.phone.lat, lon:S.phone.lon} : null);
   if (c) near=`&viewbox=${c.lon-0.6},${c.lat+0.6},${c.lon+0.6},${c.lat-0.6}`;
@@ -1487,7 +1605,7 @@ function demoTick(dt){
     hp: Math.max(0, nm*rpm/7121), nm, gear: gear || "N",
     pitch: 4*Math.sin(m.t/9) + 0.3*Math.sin(m.t*3), roll: m.turn*m.spd/600 + 1.5*Math.sin(m.t/6),
     hdg: m.hdg, lat:m.lat, lon:m.lon, alt:1190+8*Math.sin(m.t/30), gspd:m.spd, sat:9, fix:1,
-    devPct:84, devExt:true, guardHits:0, fw:"32.3", page };
+    devPct:84, devExt:true, guardHits:0, fw:"32.23", page };
   onCarFix();
 }
 
@@ -1850,7 +1968,8 @@ function render(full){
   const v=S.view;
   if (dualOn()) { renderDual(); return; }
   if (v==="rpm") renderRpm();
-  else if (v==="overview") renderOverview();
+  else if (v==="menu") renderMenu();
+  else if (v==="all"){ for (const g in ALLK) renderTiles("a-"+g); }
   else if (v==="control") renderControl();
   else if (v==="mirror") renderMirror();
   else if (v.startsWith("m-")) renderMetric();
@@ -1866,7 +1985,6 @@ function render(full){
   else if (v==="map") renderCarPos();
   else if (v==="remote"){ renderRemote(); if (full) renderLog(); }
   else if (v==="settings" && full) renderSettings();
-  if ($("drawer").classList.contains("show") && Math.random()<0.3) renderDrawer();
 }
 let prev=performance.now();
 setInterval(()=>{ const now=performance.now(), dt=Math.min(0.5,(now-prev)/1000); prev=now; if (S.mode==="demo") demoTick(dt); render(false); }, 100);
@@ -1878,6 +1996,13 @@ renderSettings();
 history.replaceState({d:0}, "", location.hash || "#rpm");
 go((location.hash.slice(1)) || "rpm", "init");
 window.addEventListener("load", ()=>{ netConnect(); bleAuto(); updateStatus(); });
+// مقصدی که از گوگل‌مپ / نشان «اشتراک» شده (اندروید: share_target توی manifest)
+(function(){
+  const q=new URLSearchParams(location.search), t=[q.get("title"),q.get("text"),q.get("url")].filter(Boolean).join("\n");
+  if (!t) return;
+  history.replaceState({d:0}, "", location.pathname + "#map");
+  setTimeout(()=>handleShared(t), 300);
+})();
 </script>
 </body>
 </html>
